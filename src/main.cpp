@@ -12,7 +12,7 @@ int main() {
 
     std::cout << "\nLoading: " << userInput << std::endl;
 
-    const Image myImage(userInput);
+    Image myImage(userInput);
 
     if (!myImage.IsValid())
     {
@@ -20,13 +20,16 @@ int main() {
         return 1;
     }
 
+    myImage.Resize(25);
+    myImage.PrintInfo();
+
     std::cout << "Converting to ASCII...\n" << std::endl;
 
     std::ofstream outFile("ascii.txt");
 
     // Palette of characters. index 0 is space (dark), 9 is light @ (light).
     std::string asciiChars = " .:-=+*#%@";
-    int numChars = asciiChars.length();
+    size_t numChars = asciiChars.length();
 
     for (int y = 0; y < myImage.height; y++)
     {
@@ -39,7 +42,7 @@ int main() {
             int b = myImage.pixelData[index + 2];
 
             int brightness = (r + g + b) / 3;
-            int charIndex = (brightness * (numChars - 1)) / 255;
+            size_t charIndex = (brightness * (numChars - 1)) / 255;
 
             outFile << asciiChars[charIndex] << asciiChars[charIndex];
         }

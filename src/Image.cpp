@@ -4,6 +4,9 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
+#define STB_IMAGE_RESIZE_IMPLEMENTATION
+#include "stb_image_resize2.h"
+
 Image::Image(const std::string& path)
 {
     filePath = path;
@@ -41,4 +44,22 @@ void Image::PrintInfo() const
 bool Image::IsValid() const
 {
     return pixelData != nullptr;
+}
+
+void Image::Resize(const int targetWidth)
+{
+    if (!IsValid()) return;
+
+    const float ratio = static_cast<float>(height)/ static_cast<float>(width);
+    const int targetHeight = static_cast<int>(static_cast<float>(targetWidth) * ratio);
+
+    const auto resizedData = static_cast<unsigned char*>(malloc(targetHeight * targetHeight * channels));
+
+    stbir_resize_uint8_linear(pixelData, width, height, 0, resizedData, targetWidth, targetHeight, 0, (stbir_pixel_layout)channels);
+
+    stbi_image_free(pixelData);
+
+    pixelData = resizedData;
+    width = targetWidth;
+    height = targetHeight;
 }
