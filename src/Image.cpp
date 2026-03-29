@@ -53,7 +53,7 @@ void Image::Resize(const int targetWidth)
     const float ratio = static_cast<float>(height)/ static_cast<float>(width);
     const int targetHeight = static_cast<int>(static_cast<float>(targetWidth) * ratio);
 
-    const auto resizedData = static_cast<unsigned char*>(malloc(targetHeight * targetHeight * channels));
+    const auto resizedData = static_cast<unsigned char*>(malloc(targetWidth * targetHeight * channels));
 
     stbir_resize_uint8_linear(pixelData, width, height, 0, resizedData, targetWidth, targetHeight, 0, (stbir_pixel_layout)channels);
 
