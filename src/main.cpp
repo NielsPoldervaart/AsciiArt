@@ -1,16 +1,54 @@
 #include <iostream>
+#include <string>
+#include <fstream>
+#include "Image.h"
 
-// TIP To <b>Run</b> code, press <shortcut actionId="Run"/> or click the <icon src="AllIcons.Actions.Execute"/> icon in the gutter.
 int main() {
-    // TIP Press <shortcut actionId="RenameElement"/> when your caret is at the <b>lang</b> variable name to see how CLion can help you rename it.
-    auto lang = "C++";
-    std::cout << "Hello and welcome to " << lang << "!\n";
+    std::cout << "=== ASCII Art Converter ===" << std::endl;
+    std::cout << "Please drag and drop an image here, or type the absolute file path: " << std::endl;
 
-    for (int i = 1; i <= 5; i++) {
-        // TIP Press <shortcut actionId="Debug"/> to start debugging your code. We have set one <icon src="AllIcons.Debugger.Db_set_breakpoint"/> breakpoint for you, but you can always add more by pressing <shortcut actionId="ToggleLineBreakpoint"/>.
-        std::cout << "i = " << i << std::endl;
+    std::string userInput;
+    std::getline(std::cin, userInput);
+
+    std::cout << "\nLoading: " << userInput << std::endl;
+
+    const Image myImage(userInput);
+
+    if (!myImage.IsValid())
+    {
+        std::cout << "Failed to load image. Double-check the path!" << std::endl;
+        return 1;
     }
 
+    std::cout << "Converting to ASCII...\n" << std::endl;
+
+    std::ofstream outFile("ascii.txt");
+
+    // Palette of characters. index 0 is space (dark), 9 is light @ (light).
+    std::string asciiChars = " .:-=+*#%@";
+    int numChars = asciiChars.length();
+
+    for (int y = 0; y < myImage.height; y++)
+    {
+        for (int x = 0; x < myImage.width; x++)
+        {
+            int index = (y * myImage.width + x) * myImage.channels;
+
+            int r = myImage.pixelData[index];
+            int g = myImage.pixelData[index + 1];
+            int b = myImage.pixelData[index + 2];
+
+            int brightness = (r + g + b) / 3;
+            int charIndex = (brightness * (numChars - 1)) / 255;
+
+            outFile << asciiChars[charIndex] << asciiChars[charIndex];
+        }
+
+        outFile << "\n";
+    }
+
+    outFile.close();
+    std::cout << "Success! Saved as 'ascii.txt' in your build folder!" << std::endl;
+
     return 0;
-    // TIP See CLion help at <a href="https://www.jetbrains.com/help/clion/">jetbrains.com/help/clion/</a>. Also, you can try interactive lessons for CLion by selecting 'Help | Learn IDE Features' from the main menu.
 }

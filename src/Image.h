@@ -1,8 +1,17 @@
-//
-// Created by Niels Poldervaart on 22/03/2026.
-//
+#pragma once
+#include <string>
 
-#ifndef ASCIIART_IMAGE_H
-#define ASCIIART_IMAGE_H
+class Image {
+public:
+    std::string filePath;
+    int width = 0;
+    int height = 0;
+    int channels = 0;
+    unsigned char* pixelData = nullptr;
 
-#endif //ASCIIART_IMAGE_H
+    explicit Image(const std::string& path);
+    ~Image();
+
+    void PrintInfo() const;
+    bool IsValid() const;
+};
