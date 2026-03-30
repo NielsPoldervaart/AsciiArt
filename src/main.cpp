@@ -15,6 +15,7 @@ int main(const int argc, char* argv[])
 
     int targetWidth = 100;
     std::string customWord;
+    bool useColor = true;
 
     for (int i = 2; i < argc; ++i)
     {
@@ -25,6 +26,10 @@ int main(const int argc, char* argv[])
         else if (arg == "--word" && i + 1 < argc)
         {
             customWord = argv[++i];
+        }
+        else if (arg == "--no-color")
+        {
+            useColor = false;
         }
     }
 
@@ -40,11 +45,11 @@ int main(const int argc, char* argv[])
 
     if (!customWord.empty())
     {
-        AsciiGenerator::GenerateWordArt(myImage, customWord);
+        AsciiGenerator::GenerateWordArt(myImage, customWord, useColor);
     }
     else
     {
-        AsciiGenerator::GenerateStandard(myImage);
+        AsciiGenerator::GenerateStandard(myImage, useColor);
     }
     std::cout << "\x1b[0m";
     return 0;

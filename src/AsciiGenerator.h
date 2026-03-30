@@ -5,6 +5,6 @@
 class AsciiGenerator
 {
 public:
-    static void GenerateStandard(const Image& img);
-    static void GenerateWordArt(const Image& img, const std::string& targetWord);
+    static void GenerateStandard(const Image& img, bool useColor = true);
+    static void GenerateWordArt(const Image& img, const std::string& targetWord, bool useColor = true);
 };

@@ -1,7 +1,7 @@
 #include "AsciiGenerator.h"
 #include <iostream>
 
-void AsciiGenerator::GenerateStandard(const Image& img)
+void AsciiGenerator::GenerateStandard(const Image& img, bool useColor)
 {
     constexpr std::string_view asciiChars = " .:-=+*#%@";
     constexpr size_t numChars = asciiChars.length();
@@ -18,14 +18,23 @@ void AsciiGenerator::GenerateStandard(const Image& img)
 
             const size_t charIndex = (brightness * (numChars - 1)) / 255;
 
-            std::cout << "\x1b[38;2;" << r << ";" << g << ";" << b << "m"
-                << asciiChars[charIndex] << " ";
+            if (useColor)
+            {
+                std::cout << "\x1b[38;2;" << r << ";" << g << ";" << b << "m";
+            }
+
+            std::cout << asciiChars[charIndex] << " ";
         }
-        std::cout << "\x1b[0m\n";
+
+        if (useColor)
+        {
+            std::cout << "\x1b[0m";
+        }
+        std::cout << "\n";
     }
 }
 
-void AsciiGenerator::GenerateWordArt(const Image& img, const std::string& targetWord)
+void AsciiGenerator::GenerateWordArt(const Image& img, const std::string& targetWord, bool useColor)
 {
     constexpr std::string_view shadingChars = " .:-=+*sN";
     constexpr size_t numShading = shadingChars.length();
@@ -40,7 +49,10 @@ void AsciiGenerator::GenerateWordArt(const Image& img, const std::string& target
             const int g = img.pixelData[index + 1];
             const int b = img.pixelData[index + 2];
 
-            std::cout << "\x1b[38;2;" << r << ";" << g << ";" << b << "m";
+            if (useColor)
+            {
+                std::cout << "\x1b[38;2;" << r << ";" << g << ";" << b << "m";
+            }
 
             if (const int brightness = (r + g + b) / 3; brightness > 100)
             {
@@ -56,6 +68,11 @@ void AsciiGenerator::GenerateWordArt(const Image& img, const std::string& target
                 std::cout << shadingChars[charIndex] << shadingChars[charIndex];
             }
         }
-        std::cout << "\x1b[0m\n";
+
+        if (useColor)
+        {
+            std::cout << "\x1b[0m";
+        }
+        std::cout << "\n";
     }
 }
