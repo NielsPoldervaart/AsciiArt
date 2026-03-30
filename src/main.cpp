@@ -1,57 +1,47 @@
 #include <iostream>
 #include <string>
-#include <fstream>
 #include "Image.h"
+#include "AsciiGenerator.h"
 
-int main() {
-    std::cout << "=== ASCII Art Converter ===" << std::endl;
-    std::cout << "Please drag and drop an image here, or type the absolute file path: " << std::endl;
+int main()
+{
+    std::cout << "=== ASCII Art Converter ===\n";
+    std::cout << "Please paste the absolute file path to your image: \n> ";
 
     std::string userInput;
     std::getline(std::cin, userInput);
-
-    std::cout << "\nLoading: " << userInput << std::endl;
 
     Image myImage(userInput);
 
     if (!myImage.IsValid())
     {
-        std::cout << "Failed to load image. Double-check the path!" << std::endl;
+        std::cout << "Failed to load image. Double-check your path!\n";
         return 1;
     }
 
-    myImage.Resize(25);
+    myImage.Resize(35);
     myImage.PrintInfo();
 
-    std::cout << "Converting to ASCII...\n" << std::endl;
+    std::cout << "\nChoose a style:\n1. Standard Gradient\n2. Custom Word Art\n> ";
+    std::string choice;
+    std::getline(std::cin, choice);
 
-    std::ofstream outFile("ascii.txt");
-
-    // Palette of characters. index 0 is space (dark), 9 is light @ (light).
-    std::string asciiChars = " .:-=+*#%@";
-    size_t numChars = asciiChars.length();
-
-    for (int y = 0; y < myImage.height; y++)
+    if (choice == "2")
     {
-        for (int x = 0; x < myImage.width; x++)
-        {
-            int index = (y * myImage.width + x) * myImage.channels;
+        std::cout << "Enter your custom word (e.g., THINK, MATRIX, GHOST): ";
+        std::string customWord;
+        std::getline(std::cin, customWord);
 
-            int r = myImage.pixelData[index];
-            int g = myImage.pixelData[index + 1];
-            int b = myImage.pixelData[index + 2];
-
-            int brightness = (r + g + b) / 3;
-            size_t charIndex = (brightness * (numChars - 1)) / 255;
-
-            outFile << asciiChars[charIndex] << asciiChars[charIndex];
-        }
-
-        outFile << "\n";
+        std::cout << "Converting to Word Art...\n";
+        AsciiGenerator::GenerateWordArt(myImage, "output.txt", customWord);
+    }
+    else
+    {
+        std::cout << "Converting to Standard ASCII...\n";
+        AsciiGenerator::GenerateStandard(myImage, "output.txt");
     }
 
-    outFile.close();
-    std::cout << "Success! Saved as 'ascii.txt' in your build folder!" << std::endl;
+    std::cout << "Success! Saved as 'output.txt' in your build folder.\n";
 
     return 0;
 }
