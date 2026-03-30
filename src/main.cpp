@@ -3,15 +3,32 @@
 #include "Image.h"
 #include "AsciiGenerator.h"
 
-int main()
+int main(const int argc, char* argv[])
 {
-    std::cout << "=== ASCII Art Converter ===\n";
-    std::cout << "Please paste the absolute file path to your image: \n> ";
+    if (argc < 2)
+    {
+        std::cout << "Usage: ./AsciiArt <image_path> [--width <number>] [--word <custom_word>]\n";
+        return 1;
+    }
 
-    std::string userInput;
-    std::getline(std::cin, userInput);
+    const std::string imagePath = argv[1];
 
-    Image myImage(userInput);
+    int targetWidth = 100;
+    std::string customWord;
+
+    for (int i = 2; i < argc; ++i)
+    {
+        if (std::string arg = argv[i]; arg == "--width" && i + 1 < argc)
+        {
+            targetWidth = std::stoi(argv[++i]);
+        }
+        else if (arg == "--word" && i + 1 < argc)
+        {
+            customWord = argv[++i];
+        }
+    }
+
+    Image myImage(imagePath);
 
     if (!myImage.IsValid())
     {
@@ -19,29 +36,19 @@ int main()
         return 1;
     }
 
-    myImage.Resize(35);
-    myImage.PrintInfo();
+    myImage.Resize(targetWidth);
 
-    std::cout << "\nChoose a style:\n1. Standard Gradient\n2. Custom Word Art\n> ";
-    std::string choice;
-    std::getline(std::cin, choice);
-
-    if (choice == "2")
+    if (!customWord.empty())
     {
-        std::cout << "Enter your custom word (e.g., THINK, MATRIX, GHOST): ";
-        std::string customWord;
-        std::getline(std::cin, customWord);
-
-        std::cout << "Converting to Word Art...\n";
-        AsciiGenerator::GenerateWordArt(myImage, "output.txt", customWord);
+        std::cout << "Converting to Word Art using '" << customWord << "'...\n";
+        AsciiGenerator::GenerateWordArt(myImage, "ascii.txt", customWord);
     }
     else
     {
         std::cout << "Converting to Standard ASCII...\n";
-        AsciiGenerator::GenerateStandard(myImage, "output.txt");
+        AsciiGenerator::GenerateStandard(myImage, "ascii.txt");
     }
 
-    std::cout << "Success! Saved as 'output.txt' in your build folder.\n";
-
+    std::cout << "Success! Saved as 'ascii.txt'.\n";
     return 0;
 }
