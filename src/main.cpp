@@ -3,34 +3,71 @@
 #include "Image.h"
 #include "AsciiGenerator.h"
 
-int main(const int argc, char* argv[])
+struct AppConfig
 {
-    if (argc < 2)
-    {
-        std::cout << "Usage: ./AsciiArt <image_path> [--width <number>] [--word <custom_word>]\n";
-        return 1;
-    }
-
-    const std::string imagePath = argv[1];
-
+    std::string imagePath;
     int targetWidth = 100;
     std::string customWord;
     bool useColor = true;
+    bool showHelp = false;
+};
+
+AppConfig ParseArguments(const int argc, char* argv[])
+{
+    AppConfig config;
+
+    if (argc < 2)
+    {
+        config.showHelp = true;
+        return config;
+    }
+
+    const std::string firstArg = argv[1];
+    if (firstArg == "--help" || firstArg == "-h")
+    {
+        config.showHelp = true;
+        return config;
+    }
+
+    config.imagePath = firstArg;
 
     for (int i = 2; i < argc; ++i)
     {
         if (std::string arg = argv[i]; arg == "--width" && i + 1 < argc)
         {
-            targetWidth = std::stoi(argv[++i]);
+            config.targetWidth = std::stoi(argv[++i]);
         }
         else if (arg == "--word" && i + 1 < argc)
         {
-            customWord = argv[++i];
+            config.customWord = argv[++i];
         }
         else if (arg == "--no-color")
         {
-            useColor = false;
+            config.useColor = false;
         }
+        else if (arg == "--help" || arg == "-h")
+        {
+            config.showHelp = true;
+        }
+    }
+
+    return config;
+}
+
+int main(const int argc, char* argv[])
+{
+    const auto [imagePath, targetWidth, customWord, useColor, showHelp] = ParseArguments(argc, argv);
+
+    if (showHelp || imagePath.empty())
+    {
+        std::cout << "=== AsciiArt Generator ===\n";
+        std::cout << "Usage: ./AsciiArt <image_path> [options]\n\n";
+        std::cout << "Options:\n";
+        std::cout << "  --width <num>    Set the output width (default: 100)\n";
+        std::cout << "  --word <text>    Use a custom word for bright areas\n";
+        std::cout << "  --no-color       Disable ANSI terminal colors\n";
+        std::cout << "  --help, -h       Show this help menu\n";
+        return 0;
     }
 
     Image myImage(imagePath);
@@ -51,6 +88,7 @@ int main(const int argc, char* argv[])
     {
         AsciiGenerator::GenerateStandard(myImage, useColor);
     }
-    std::cout << "\x1b[0m";
+
+    if (useColor) std::cout << "\x1b[0m";
     return 0;
 }
