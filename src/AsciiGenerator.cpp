@@ -14,7 +14,13 @@ void AsciiGenerator::GenerateStandard(const Image& img, const bool useColor)
             const int r = img.pixelData[index];
             const int g = img.pixelData[index + 1];
             const int b = img.pixelData[index + 2];
-            const int brightness = (r + g + b) / 3;
+
+            // Relative Luminance
+            int brightness = static_cast<int>(
+                0.2126 * static_cast<double>(r) +
+                0.7152 * static_cast<double>(g) +
+                0.0722 * static_cast<double>(b)
+            );
 
             const size_t charIndex = (brightness * (numChars - 1)) / 255;
 
@@ -44,7 +50,12 @@ void AsciiGenerator::GenerateWordArt(const Image& img, const std::string& target
             const int g = img.pixelData[index + 1];
             const int b = img.pixelData[index + 2];
 
-            const int brightness = (r + g + b) / 3;
+            // Relative Luminance
+            const int brightness = static_cast<int>(
+                0.2126 * static_cast<double>(r) +
+                0.7152 * static_cast<double>(g) +
+                0.0722 * static_cast<double>(b)
+            );
 
             if (useColor)
                 std::cout << "\x1b[38;2;" << r << ";" << g << ";" << b << "m";
