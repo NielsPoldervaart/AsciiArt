@@ -1,7 +1,7 @@
 #include "AsciiGenerator.h"
 #include <iostream>
 
-void AsciiGenerator::GenerateStandard(const Image& img, bool useColor)
+void AsciiGenerator::GenerateStandard(const Image& img, const bool useColor)
 {
     constexpr std::string_view asciiChars = " .:-=+*#%@";
     constexpr size_t numChars = asciiChars.length();
@@ -19,24 +19,19 @@ void AsciiGenerator::GenerateStandard(const Image& img, bool useColor)
             const size_t charIndex = (brightness * (numChars - 1)) / 255;
 
             if (useColor)
-            {
                 std::cout << "\x1b[38;2;" << r << ";" << g << ";" << b << "m";
-            }
 
             std::cout << asciiChars[charIndex] << " ";
         }
 
-        if (useColor)
-        {
-            std::cout << "\x1b[0m";
-        }
+        if (useColor) std::cout << "\x1b[0m";
         std::cout << "\n";
     }
 }
 
-void AsciiGenerator::GenerateWordArt(const Image& img, const std::string& targetWord, bool useColor)
+void AsciiGenerator::GenerateWordArt(const Image& img, const std::string& targetWord, const bool useColor)
 {
-    constexpr std::string_view shadingChars = " .:-=+*sN";
+    constexpr std::string_view shadingChars = " .:-=+*";
     constexpr size_t numShading = shadingChars.length();
     size_t wordIndex = 0;
 
@@ -49,12 +44,12 @@ void AsciiGenerator::GenerateWordArt(const Image& img, const std::string& target
             const int g = img.pixelData[index + 1];
             const int b = img.pixelData[index + 2];
 
-            if (useColor)
-            {
-                std::cout << "\x1b[38;2;" << r << ";" << g << ";" << b << "m";
-            }
+            const int brightness = (r + g + b) / 3;
 
-            if (const int brightness = (r + g + b) / 3; brightness > 100)
+            if (useColor)
+                std::cout << "\x1b[38;2;" << r << ";" << g << ";" << b << "m";
+
+            if (brightness > 128)
             {
                 std::cout << targetWord[wordIndex];
                 wordIndex = (wordIndex + 1) % targetWord.length();
@@ -64,15 +59,12 @@ void AsciiGenerator::GenerateWordArt(const Image& img, const std::string& target
             }
             else
             {
-                const size_t charIndex = (brightness * (numShading - 1)) / 100;
+                const size_t charIndex = (brightness * (numShading - 1)) / 128;
                 std::cout << shadingChars[charIndex] << shadingChars[charIndex];
             }
         }
 
-        if (useColor)
-        {
-            std::cout << "\x1b[0m";
-        }
+        if (useColor) std::cout << "\x1b[0m";
         std::cout << "\n";
     }
 }
