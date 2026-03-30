@@ -1,12 +1,9 @@
 #include "AsciiGenerator.h"
-#include <fstream>
+#include <iostream>
 
-void AsciiGenerator::GenerateStandard(const Image& img, const std::string& outputPath)
+void AsciiGenerator::GenerateStandard(const Image& img)
 {
-    std::ofstream outFile(outputPath);
-    if (!outFile.is_open()) return;
-
-    constexpr std::string asciiChars = " .:-=+*#%@";
+    constexpr std::string_view asciiChars = " .:-=+*#%@";
     constexpr size_t numChars = asciiChars.length();
 
     for (int y = 0; y < img.height; y++)
@@ -21,18 +18,15 @@ void AsciiGenerator::GenerateStandard(const Image& img, const std::string& outpu
 
             const size_t charIndex = (brightness * (numChars - 1)) / 255;
 
-            outFile << asciiChars[charIndex] << " ";
+            std::cout << "\x1b[38;2;" << r << ";" << g << ";" << b << "m"
+                << asciiChars[charIndex] << " ";
         }
-        outFile << "\n";
+        std::cout << "\x1b[0m\n";
     }
-    outFile.close();
 }
 
-void AsciiGenerator::GenerateWordArt(const Image& img, const std::string& outputPath, const std::string& targetWord)
+void AsciiGenerator::GenerateWordArt(const Image& img, const std::string& targetWord)
 {
-    std::ofstream outFile(outputPath);
-    if (!outFile.is_open()) return;
-
     constexpr std::string_view shadingChars = " .:-=+*sN";
     constexpr size_t numShading = shadingChars.length();
     size_t wordIndex = 0;
@@ -46,21 +40,22 @@ void AsciiGenerator::GenerateWordArt(const Image& img, const std::string& output
             const int g = img.pixelData[index + 1];
             const int b = img.pixelData[index + 2];
 
+            std::cout << "\x1b[38;2;" << r << ";" << g << ";" << b << "m";
+
             if (const int brightness = (r + g + b) / 3; brightness > 100)
             {
-                outFile << targetWord[wordIndex];
+                std::cout << targetWord[wordIndex];
                 wordIndex = (wordIndex + 1) % targetWord.length();
 
-                outFile << targetWord[wordIndex];
+                std::cout << targetWord[wordIndex];
                 wordIndex = (wordIndex + 1) % targetWord.length();
             }
             else
             {
                 const size_t charIndex = (brightness * (numShading - 1)) / 100;
-                outFile << shadingChars[charIndex] << shadingChars[charIndex];
+                std::cout << shadingChars[charIndex] << shadingChars[charIndex];
             }
         }
-        outFile << "\n";
+        std::cout << "\x1b[0m\n";
     }
-    outFile.close();
 }

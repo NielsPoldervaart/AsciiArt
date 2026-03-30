@@ -40,15 +40,12 @@ int main(const int argc, char* argv[])
 
     if (!customWord.empty())
     {
-        std::cout << "Converting to Word Art using '" << customWord << "'...\n";
-        AsciiGenerator::GenerateWordArt(myImage, "ascii.txt", customWord);
+        AsciiGenerator::GenerateWordArt(myImage, customWord);
     }
     else
     {
-        std::cout << "Converting to Standard ASCII...\n";
-        AsciiGenerator::GenerateStandard(myImage, "ascii.txt");
+        AsciiGenerator::GenerateStandard(myImage);
     }
-
-    std::cout << "Success! Saved as 'ascii.txt'.\n";
+    std::cout << "\x1b[0m";
     return 0;
 }
