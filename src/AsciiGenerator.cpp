@@ -1,7 +1,7 @@
 #include "AsciiGenerator.h"
 #include <iostream>
 
-void AsciiGenerator::GenerateStandard(const Image& img, const bool useColor)
+void AsciiGenerator::GenerateStandard(const Image& img, const bool useColor, const float contrast)
 {
     constexpr std::string_view asciiChars = " .:-=+*#%@";
     constexpr size_t numChars = asciiChars.length();
@@ -21,6 +21,7 @@ void AsciiGenerator::GenerateStandard(const Image& img, const bool useColor)
                 0.7152 * static_cast<double>(g) +
                 0.0722 * static_cast<double>(b)
             );
+            brightness = std::clamp(static_cast<int>(static_cast<float>(brightness - 128) * contrast + 128.0f), 0, 255);
 
             const size_t charIndex = (brightness * (numChars - 1)) / 255;
 
@@ -35,7 +36,8 @@ void AsciiGenerator::GenerateStandard(const Image& img, const bool useColor)
     }
 }
 
-void AsciiGenerator::GenerateWordArt(const Image& img, const std::string& targetWord, const bool useColor)
+void AsciiGenerator::GenerateWordArt(const Image& img, const std::string& targetWord, const bool useColor,
+                                     const float contrast)
 {
     constexpr std::string_view shadingChars = " .:-=+*";
     constexpr size_t numShading = shadingChars.length();
@@ -51,11 +53,12 @@ void AsciiGenerator::GenerateWordArt(const Image& img, const std::string& target
             const int b = img.pixelData[index + 2];
 
             // Relative Luminance
-            const int brightness = static_cast<int>(
+            int brightness = static_cast<int>(
                 0.2126 * static_cast<double>(r) +
                 0.7152 * static_cast<double>(g) +
                 0.0722 * static_cast<double>(b)
             );
+            brightness = std::clamp(static_cast<int>(static_cast<float>(brightness - 128) * contrast + 128.0f), 0, 255);
 
             if (useColor)
                 std::cout << "\x1b[38;2;" << r << ";" << g << ";" << b << "m";

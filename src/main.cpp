@@ -10,6 +10,7 @@ struct AppConfig
     std::string customWord;
     bool useColor = true;
     bool showHelp = false;
+    float contrast = 1.0f;
 };
 
 AppConfig ParseArguments(const int argc, char* argv[])
@@ -49,6 +50,10 @@ AppConfig ParseArguments(const int argc, char* argv[])
         {
             config.showHelp = true;
         }
+        else if (arg == "--contrast" && i + 1 < argc)
+        {
+            config.contrast = std::stof(argv[++i]);
+        }
     }
 
     return config;
@@ -56,7 +61,7 @@ AppConfig ParseArguments(const int argc, char* argv[])
 
 int main(const int argc, char* argv[])
 {
-    const auto [imagePath, targetWidth, customWord, useColor, showHelp] = ParseArguments(argc, argv);
+    const auto [imagePath, targetWidth, customWord, useColor, showHelp, contrast] = ParseArguments(argc, argv);
 
     if (showHelp || imagePath.empty())
     {
@@ -82,11 +87,11 @@ int main(const int argc, char* argv[])
 
     if (!customWord.empty())
     {
-        AsciiGenerator::GenerateWordArt(myImage, customWord, useColor);
+        AsciiGenerator::GenerateWordArt(myImage, customWord, useColor, contrast);
     }
     else
     {
-        AsciiGenerator::GenerateStandard(myImage, useColor);
+        AsciiGenerator::GenerateStandard(myImage, useColor, contrast);
     }
 
     if (useColor) std::cout << "\x1b[0m";
