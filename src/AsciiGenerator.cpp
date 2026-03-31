@@ -1,10 +1,16 @@
 #include "AsciiGenerator.h"
-#include <iostream>
+#include <string_view>
+#include <algorithm>
 
-void AsciiGenerator::GenerateStandard(const Image& img, const bool useColor, const float contrast)
+AsciiFrame AsciiGenerator::GenerateStandard(const Image& img, const float contrast)
 {
     constexpr std::string_view asciiChars = " .:-=+*#%@";
     constexpr size_t numChars = asciiChars.length();
+
+    AsciiFrame frame;
+    frame.width = img.width;
+    frame.height = img.height;
+    frame.pixels.reserve(img.width * img.height);
 
     for (int y = 0; y < img.height; y++)
     {
@@ -25,23 +31,22 @@ void AsciiGenerator::GenerateStandard(const Image& img, const bool useColor, con
 
             const size_t charIndex = (brightness * (numChars - 1)) / 255;
 
-            if (useColor)
-                std::cout << "\x1b[38;2;" << r << ";" << g << ";" << b << "m";
-
-            std::cout << asciiChars[charIndex] << " ";
+            frame.pixels.push_back({asciiChars[charIndex], ' ', r, g, b});
         }
-
-        if (useColor) std::cout << "\x1b[0m";
-        std::cout << "\n";
     }
+    return frame;
 }
 
-void AsciiGenerator::GenerateWordArt(const Image& img, const std::string& targetWord, const bool useColor,
-                                     const float contrast)
+AsciiFrame AsciiGenerator::GenerateWordArt(const Image& img, const std::string& targetWord, const float contrast)
 {
     constexpr std::string_view shadingChars = " .:-=+*";
     constexpr size_t numShading = shadingChars.length();
     size_t wordIndex = 0;
+
+    AsciiFrame frame;
+    frame.width = img.width;
+    frame.height = img.height;
+    frame.pixels.reserve(img.width * img.height);
 
     for (int y = 0; y < img.height; y++)
     {
@@ -60,25 +65,23 @@ void AsciiGenerator::GenerateWordArt(const Image& img, const std::string& target
             );
             brightness = std::clamp(static_cast<int>(static_cast<float>(brightness - 128) * contrast + 128.0f), 0, 255);
 
-            if (useColor)
-                std::cout << "\x1b[38;2;" << r << ";" << g << ";" << b << "m";
-
+            char c1, c2;
             if (brightness > 128)
             {
-                std::cout << targetWord[wordIndex];
+                c1 = targetWord[wordIndex];
                 wordIndex = (wordIndex + 1) % targetWord.length();
-
-                std::cout << targetWord[wordIndex];
+                c2 = targetWord[wordIndex];
                 wordIndex = (wordIndex + 1) % targetWord.length();
             }
             else
             {
                 const size_t charIndex = (brightness * (numShading - 1)) / 128;
-                std::cout << shadingChars[charIndex] << shadingChars[charIndex];
+                c1 = shadingChars[charIndex];
+                c2 = shadingChars[charIndex];
             }
-        }
 
-        if (useColor) std::cout << "\x1b[0m";
-        std::cout << "\n";
+            frame.pixels.push_back({c1, c2, r, g, b});
+        }
     }
+    return frame;
 }

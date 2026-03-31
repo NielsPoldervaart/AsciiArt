@@ -91,13 +91,30 @@ int main(const int argc, char* argv[])
 
     myImage.Resize(targetWidth);
 
+    AsciiFrame frame;
     if (!customWord.empty())
     {
-        AsciiGenerator::GenerateWordArt(myImage, customWord, useColor, contrast);
+        frame = AsciiGenerator::GenerateWordArt(myImage, customWord, contrast);
     }
     else
     {
-        AsciiGenerator::GenerateStandard(myImage, useColor, contrast);
+        frame = AsciiGenerator::GenerateStandard(myImage, contrast);
+    }
+
+    for (int y = 0; y < frame.height; ++y)
+    {      for (int x = 0; x < frame.width; ++x)
+        {
+            const auto& [char1, char2, r, g, b] = frame.pixels[y * frame.width + x];
+
+            if (useColor)
+            {
+                std::cout << "\x1b[38;2;" << r << ";" << g << ";" << b << "m";
+            }
+            std::cout << char1 << char2;
+        }
+
+        if (useColor) std::cout << "\x1b[0m";
+        std::cout << "\n";
     }
 
     if (useColor) std::cout << "\x1b[0m";
