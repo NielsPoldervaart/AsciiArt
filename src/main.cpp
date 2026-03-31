@@ -11,6 +11,7 @@ struct AppConfig
     bool useColor = true;
     bool showHelp = false;
     float contrast = 1.0f;
+    std::string fontPath = "fonts/VT323.ttf";
 };
 
 AppConfig ParseArguments(const int argc, char* argv[])
@@ -54,6 +55,10 @@ AppConfig ParseArguments(const int argc, char* argv[])
         {
             config.contrast = std::stof(argv[++i]);
         }
+        else if (arg == "--font" && i + 1 < argc)
+        {
+            config.fontPath = argv[++i];
+        }
     }
 
     return config;
@@ -61,7 +66,8 @@ AppConfig ParseArguments(const int argc, char* argv[])
 
 int main(const int argc, char* argv[])
 {
-    const auto [imagePath, targetWidth, customWord, useColor, showHelp, contrast] = ParseArguments(argc, argv);
+    const auto [imagePath, targetWidth, customWord, useColor, showHelp, contrast, fontPath] =
+        ParseArguments(argc, argv);
 
     if (showHelp || imagePath.empty())
     {
