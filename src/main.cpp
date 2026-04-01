@@ -15,6 +15,7 @@ struct AppConfig
     std::string fontPath = "fonts/VT323.ttf";
     std::string outputPath = "ascii.png";
     float edgeThreshold = 100.0f;
+    bool retroColors = false;
 };
 
 AppConfig ParseArguments(const int argc, char* argv[])
@@ -70,6 +71,10 @@ AppConfig ParseArguments(const int argc, char* argv[])
         {
             config.edgeThreshold = std::stof(argv[++i]);
         }
+        else if (arg == "--retro")
+        {
+            config.retroColors = true;
+        }
     }
 
     return config;
@@ -77,7 +82,8 @@ AppConfig ParseArguments(const int argc, char* argv[])
 
 int main(const int argc, char* argv[])
 {
-    const auto [imagePath, targetWidth, customWord, useColor, showHelp, contrast, fontPath, outputPath, edgeThreshold] =
+    const auto [imagePath, targetWidth, customWord, useColor, showHelp, contrast, fontPath, outputPath, edgeThreshold,
+            retroColors] =
         ParseArguments(argc, argv);
 
     if (showHelp || imagePath.empty())
@@ -109,14 +115,9 @@ int main(const int argc, char* argv[])
 
     AsciiFrame frame;
     if (!customWord.empty())
-    {
-        frame = AsciiGenerator::GenerateWordArt(myImage, customWord, contrast, edgeThreshold);
-    }
+        frame = AsciiGenerator::GenerateWordArt(myImage, customWord, contrast, edgeThreshold, retroColors);
     else
-    {
-        frame = AsciiGenerator::GenerateStandard(myImage, contrast, edgeThreshold);
-    }
-
+        frame = AsciiGenerator::GenerateStandard(myImage, contrast, edgeThreshold, retroColors);
 
     std::cout << "\nRendering PNG...\n";
     ImageExporter::ExportToPng(frame, fontPath, outputPath, useColor);
