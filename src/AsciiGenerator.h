@@ -5,8 +5,7 @@
 
 struct AsciiPixel
 {
-    char char1;
-    char char2;
+    char c;
     int r, g, b;
 };
 

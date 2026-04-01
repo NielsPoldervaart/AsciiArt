@@ -31,7 +31,7 @@ AsciiFrame AsciiGenerator::GenerateStandard(const Image& img, const float contra
 
             const size_t charIndex = (brightness * (numChars - 1)) / 255;
 
-            frame.pixels.push_back({asciiChars[charIndex], ' ', r, g, b});
+            frame.pixels.push_back({asciiChars[charIndex], r, g, b});
         }
     }
     return frame;
@@ -65,22 +65,19 @@ AsciiFrame AsciiGenerator::GenerateWordArt(const Image& img, const std::string& 
             );
             brightness = std::clamp(static_cast<int>(static_cast<float>(brightness - 128) * contrast + 128.0f), 0, 255);
 
-            char c1, c2;
+            char c;
             if (brightness > 128)
             {
-                c1 = targetWord[wordIndex];
-                wordIndex = (wordIndex + 1) % targetWord.length();
-                c2 = targetWord[wordIndex];
+                c = targetWord[wordIndex];
                 wordIndex = (wordIndex + 1) % targetWord.length();
             }
             else
             {
                 const size_t charIndex = (brightness * (numShading - 1)) / 128;
-                c1 = shadingChars[charIndex];
-                c2 = shadingChars[charIndex];
+                c = shadingChars[charIndex];
             }
 
-            frame.pixels.push_back({c1, c2, r, g, b});
+            frame.pixels.push_back({c, r, g, b});
         }
     }
     return frame;

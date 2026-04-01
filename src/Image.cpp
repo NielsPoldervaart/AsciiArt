@@ -46,16 +46,17 @@ bool Image::IsValid() const
     return pixelData != nullptr;
 }
 
-void Image::Resize(const int targetWidth)
+void Image::Resize(const int targetWidth, const float fontRatio)
 {
     if (!IsValid()) return;
 
-    const float ratio = static_cast<float>(height)/ static_cast<float>(width);
-    const int targetHeight = static_cast<int>(static_cast<float>(targetWidth) * ratio);
+    const float ratio = static_cast<float>(height) / static_cast<float>(width);
+    const int targetHeight = static_cast<int>((static_cast<float>(targetWidth) * ratio) / fontRatio);
 
     const auto resizedData = static_cast<unsigned char*>(malloc(targetWidth * targetHeight * channels));
 
-    stbir_resize_uint8_linear(pixelData, width, height, 0, resizedData, targetWidth, targetHeight, 0, (stbir_pixel_layout)channels);
+    stbir_resize_uint8_linear(pixelData, width, height, 0, resizedData, targetWidth, targetHeight, 0,
+                              static_cast<stbir_pixel_layout>(channels));
 
     stbi_image_free(pixelData);
 

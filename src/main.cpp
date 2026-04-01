@@ -2,6 +2,7 @@
 #include <string>
 #include "Image.h"
 #include "AsciiGenerator.h"
+#include "ImageExporter.h"
 
 struct AppConfig
 {
@@ -12,6 +13,8 @@ struct AppConfig
     bool showHelp = false;
     float contrast = 1.0f;
     std::string fontPath = "fonts/VT323.ttf";
+    std::string outputPath = "ascii.png";
+    float fontRatio = 2.0f;
 };
 
 AppConfig ParseArguments(const int argc, char* argv[])
@@ -59,6 +62,10 @@ AppConfig ParseArguments(const int argc, char* argv[])
         {
             config.fontPath = argv[++i];
         }
+        else if (arg == "--out" && i + 1 < argc)
+        {
+            config.outputPath = argv[++i];
+        }
     }
 
     return config;
@@ -66,7 +73,7 @@ AppConfig ParseArguments(const int argc, char* argv[])
 
 int main(const int argc, char* argv[])
 {
-    const auto [imagePath, targetWidth, customWord, useColor, showHelp, contrast, fontPath] =
+    const auto [imagePath, targetWidth, customWord, useColor, showHelp, contrast, fontPath, outputPath, fontRatio] =
         ParseArguments(argc, argv);
 
     if (showHelp || imagePath.empty())
@@ -74,10 +81,13 @@ int main(const int argc, char* argv[])
         std::cout << "=== AsciiArt Generator ===\n";
         std::cout << "Usage: ./AsciiArt <image_path> [options]\n\n";
         std::cout << "Options:\n";
-        std::cout << "  --width <num>    Set the output width (default: 100)\n";
-        std::cout << "  --word <text>    Use a custom word for bright areas\n";
-        std::cout << "  --no-color       Disable ANSI terminal colors\n";
-        std::cout << "  --help, -h       Show this help menu\n";
+        std::cout << "  --width <num>      Set the output width in characters (default: 100)\n";
+        std::cout << "  --word <text>      Use a custom word for bright areas\n";
+        std::cout << "  --no-color         Disable ANSI colors and export monochrome PNG\n";
+        std::cout << "  --contrast <num>   Adjust image contrast multiplier (default: 1.0)\n";
+        std::cout << "  --font <path>      Path to a monospace .ttf font (default: fonts/VT323.ttf)\n";
+        std::cout << "  --out <path>       Path to save the generated PNG (default: output.png)\n";
+        std::cout << "  --help, -h         Show this help menu\n";
         return 0;
     }
 
@@ -89,7 +99,7 @@ int main(const int argc, char* argv[])
         return 1;
     }
 
-    myImage.Resize(targetWidth);
+    myImage.Resize(targetWidth, fontRatio);
 
     AsciiFrame frame;
     if (!customWord.empty())
@@ -102,15 +112,16 @@ int main(const int argc, char* argv[])
     }
 
     for (int y = 0; y < frame.height; ++y)
-    {      for (int x = 0; x < frame.width; ++x)
+    {
+        for (int x = 0; x < frame.width; ++x)
         {
-            const auto& [char1, char2, r, g, b] = frame.pixels[y * frame.width + x];
+            const auto& [c, r, g, b] = frame.pixels[y * frame.width + x];
 
             if (useColor)
             {
                 std::cout << "\x1b[38;2;" << r << ";" << g << ";" << b << "m";
             }
-            std::cout << char1 << char2;
+            std::cout << c;
         }
 
         if (useColor) std::cout << "\x1b[0m";
@@ -118,5 +129,9 @@ int main(const int argc, char* argv[])
     }
 
     if (useColor) std::cout << "\x1b[0m";
+
+    std::cout << "\nRendering PNG...\n";
+    ImageExporter::ExportToPng(frame, fontPath, outputPath, useColor);
+
     return 0;
 }
