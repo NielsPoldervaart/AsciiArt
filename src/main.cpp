@@ -14,6 +14,7 @@ struct AppConfig
     float contrast = 1.0f;
     std::string fontPath = "fonts/VT323.ttf";
     std::string outputPath = "ascii.png";
+    float edgeThreshold = 100.0f;
 };
 
 AppConfig ParseArguments(const int argc, char* argv[])
@@ -65,6 +66,10 @@ AppConfig ParseArguments(const int argc, char* argv[])
         {
             config.outputPath = argv[++i];
         }
+        else if (arg == "--edgeThreshold" || arg == "-et" && i + 1 < argc)
+        {
+            config.edgeThreshold = std::stof(argv[++i]);
+        }
     }
 
     return config;
@@ -72,7 +77,7 @@ AppConfig ParseArguments(const int argc, char* argv[])
 
 int main(const int argc, char* argv[])
 {
-    const auto [imagePath, targetWidth, customWord, useColor, showHelp, contrast, fontPath, outputPath] =
+    const auto [imagePath, targetWidth, customWord, useColor, showHelp, contrast, fontPath, outputPath, edgeThreshold] =
         ParseArguments(argc, argv);
 
     if (showHelp || imagePath.empty())
@@ -85,6 +90,7 @@ int main(const int argc, char* argv[])
         std::cout << "  --no-color         Disable ANSI colors and export monochrome PNG\n";
         std::cout << "  --contrast <num>   Adjust image contrast multiplier (default: 1.0)\n";
         std::cout << "  --font <path>      Path to a monospace .ttf font (default: fonts/VT323.ttf)\n";
+        std::cout << "  --threshold <num>  Set Sobel edge detection threshold (default: 100.0)\n";
         std::cout << "  --out <path>       Path to save the generated PNG (default: output.png)\n";
         std::cout << "  --help, -h         Show this help menu\n";
         return 0;
@@ -104,11 +110,11 @@ int main(const int argc, char* argv[])
     AsciiFrame frame;
     if (!customWord.empty())
     {
-        frame = AsciiGenerator::GenerateWordArt(myImage, customWord, contrast);
+        frame = AsciiGenerator::GenerateWordArt(myImage, customWord, contrast, edgeThreshold);
     }
     else
     {
-        frame = AsciiGenerator::GenerateStandard(myImage, contrast);
+        frame = AsciiGenerator::GenerateStandard(myImage, contrast, edgeThreshold);
     }
 
     for (int y = 0; y < frame.height; ++y)
