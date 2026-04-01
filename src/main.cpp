@@ -14,7 +14,6 @@ struct AppConfig
     float contrast = 1.0f;
     std::string fontPath = "fonts/VT323.ttf";
     std::string outputPath = "ascii.png";
-    float fontRatio = 2.0f;
 };
 
 AppConfig ParseArguments(const int argc, char* argv[])
@@ -73,7 +72,7 @@ AppConfig ParseArguments(const int argc, char* argv[])
 
 int main(const int argc, char* argv[])
 {
-    const auto [imagePath, targetWidth, customWord, useColor, showHelp, contrast, fontPath, outputPath, fontRatio] =
+    const auto [imagePath, targetWidth, customWord, useColor, showHelp, contrast, fontPath, outputPath] =
         ParseArguments(argc, argv);
 
     if (showHelp || imagePath.empty())
@@ -99,7 +98,8 @@ int main(const int argc, char* argv[])
         return 1;
     }
 
-    myImage.Resize(targetWidth, fontRatio);
+    const float exactFontRatio = ImageExporter::GetFontRatio(fontPath, 16);
+    myImage.Resize(targetWidth, exactFontRatio);
 
     AsciiFrame frame;
     if (!customWord.empty())
