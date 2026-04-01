@@ -117,24 +117,6 @@ int main(const int argc, char* argv[])
         frame = AsciiGenerator::GenerateStandard(myImage, contrast, edgeThreshold);
     }
 
-    for (int y = 0; y < frame.height; ++y)
-    {
-        for (int x = 0; x < frame.width; ++x)
-        {
-            const auto& [c, r, g, b] = frame.pixels[y * frame.width + x];
-
-            if (useColor)
-            {
-                std::cout << "\x1b[38;2;" << r << ";" << g << ";" << b << "m";
-            }
-            std::cout << c;
-        }
-
-        if (useColor) std::cout << "\x1b[0m";
-        std::cout << "\n";
-    }
-
-    if (useColor) std::cout << "\x1b[0m";
 
     std::cout << "\nRendering PNG...\n";
     ImageExporter::ExportToPng(frame, fontPath, outputPath, useColor);
