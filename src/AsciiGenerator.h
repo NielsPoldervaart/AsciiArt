@@ -20,7 +20,8 @@ class AsciiGenerator
 {
 public:
     static AsciiFrame GenerateStandard(const Image& img, float contrast = 1.0f, float edgeThreshold = 100.0f,
-                                       bool retroColors = false);
+                                       bool retroColors = false, float saturation = 1.0f, float gamma = 1.0f);
     static AsciiFrame GenerateWordArt(const Image& img, const std::string& targetWord, float contrast = 1.0f,
-                                      float edgeThreshold = 100.0f, bool retroColors = false);
+                                      float edgeThreshold = 100.0f, bool retroColors = false, float saturation = 1.0f,
+                                      float gamma = 1.0f);
 };

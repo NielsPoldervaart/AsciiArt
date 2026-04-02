@@ -16,6 +16,8 @@ struct AppConfig
     std::string outputPath = "ascii.png";
     float edgeThreshold = 100.0f;
     bool retroColors = false;
+    float saturation = 1.0f;
+    float gamma = 1.0f;
 };
 
 AppConfig ParseArguments(const int argc, char* argv[])
@@ -55,9 +57,17 @@ AppConfig ParseArguments(const int argc, char* argv[])
         {
             config.showHelp = true;
         }
-        else if (arg == "--contrast" && i + 1 < argc)
+        else if ((arg == "--contrast" || arg == "-c") && i + 1 < argc)
         {
             config.contrast = std::stof(argv[++i]);
+        }
+        else if ((arg == "--saturation" || arg == "-s") && i + 1 < argc)
+        {
+            config.saturation = std::stof(argv[++i]);
+        }
+        else if ((arg == "--gamma" || arg == "-g") && i + 1 < argc)
+        {
+            config.gamma = std::stof(argv[++i]);
         }
         else if (arg == "--font" && i + 1 < argc)
         {
@@ -67,7 +77,7 @@ AppConfig ParseArguments(const int argc, char* argv[])
         {
             config.outputPath = argv[++i];
         }
-        else if (arg == "--edgeThreshold" || arg == "-et" && i + 1 < argc)
+        else if ((arg == "--edgeThreshold" || arg == "-et") && i + 1 < argc)
         {
             config.edgeThreshold = std::stof(argv[++i]);
         }
@@ -83,22 +93,24 @@ AppConfig ParseArguments(const int argc, char* argv[])
 int main(const int argc, char* argv[])
 {
     const auto [imagePath, targetWidth, customWord, useColor, showHelp, contrast, fontPath, outputPath, edgeThreshold,
-            retroColors] =
-        ParseArguments(argc, argv);
+        retroColors, saturation, gamma] = ParseArguments(argc, argv);
 
     if (showHelp || imagePath.empty())
     {
         std::cout << "=== AsciiArt Generator ===\n";
         std::cout << "Usage: ./AsciiArt <image_path> [options]\n\n";
         std::cout << "Options:\n";
-        std::cout << "  --width <num>      Set the output width in characters (default: 100)\n";
-        std::cout << "  --word <text>      Use a custom word for bright areas\n";
-        std::cout << "  --no-color         Disable ANSI colors and export monochrome PNG\n";
-        std::cout << "  --contrast <num>   Adjust image contrast multiplier (default: 1.0)\n";
-        std::cout << "  --font <path>      Path to a monospace .ttf font (default: fonts/VT323.ttf)\n";
-        std::cout << "  --threshold <num>  Set Sobel edge detection threshold (default: 100.0)\n";
-        std::cout << "  --out <path>       Path to save the generated PNG (default: output.png)\n";
-        std::cout << "  --help, -h         Show this help menu\n";
+        std::cout << "  --width <num>          Set the output width in characters (default: 100)\n";
+        std::cout << "  --word <text>          Use a custom word for bright areas\n";
+        std::cout << "  --no-color             Disable colors and export monochrome PNG\n";
+        std::cout << "  --contrast, -c <num>   Adjust image contrast multiplier (default: 1.0)\n";
+        std::cout << "  --saturation, -s <num> Adjust color saturation multiplier (default: 1.0)\n";
+        std::cout << "  --gamma, -g <num>      Adjust gamma curve (default: 1.0, < 1.0 is brighter, > 1.0 is darker)\n";
+        std::cout << "  --retro                Use classic 8-color retro palette with max brightness\n";
+        std::cout << "  --threshold, -et <num> Set Sobel edge detection threshold (default: 100.0)\n";
+        std::cout << "  --font <path>          Path to a monospace .ttf font (default: fonts/VT323.ttf)\n";
+        std::cout << "  --out <path>           Path to save the generated PNG (default: ascii.png)\n";
+        std::cout << "  --help, -h             Show this help menu\n";
         return 0;
     }
 
@@ -115,9 +127,10 @@ int main(const int argc, char* argv[])
 
     AsciiFrame frame;
     if (!customWord.empty())
-        frame = AsciiGenerator::GenerateWordArt(myImage, customWord, contrast, edgeThreshold, retroColors);
+        frame = AsciiGenerator::GenerateWordArt(myImage, customWord, contrast, edgeThreshold, retroColors, saturation,
+                                                gamma);
     else
-        frame = AsciiGenerator::GenerateStandard(myImage, contrast, edgeThreshold, retroColors);
+        frame = AsciiGenerator::GenerateStandard(myImage, contrast, edgeThreshold, retroColors, saturation, gamma);
 
     std::cout << "\nRendering PNG...\n";
     ImageExporter::ExportToPng(frame, fontPath, outputPath, useColor);

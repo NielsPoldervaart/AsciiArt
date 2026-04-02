@@ -82,7 +82,7 @@ namespace
 }
 
 AsciiFrame AsciiGenerator::GenerateStandard(const Image& img, const float contrast, const float edgeThreshold,
-                                            const bool retroColors)
+                                            const bool retroColors, const float saturation, const float gamma)
 {
     constexpr std::string_view asciiChars = " .:-=+*#%@";
     constexpr size_t numChars = asciiChars.length();
@@ -103,28 +103,39 @@ AsciiFrame AsciiGenerator::GenerateStandard(const Image& img, const float contra
             const int rawG = img.pixelData[index + 1];
             const int rawB = img.pixelData[index + 2];
 
-            int brightness = static_cast<int>(
-                0.2126f * static_cast<float>(rawR) +
+            float lum = (0.2126f * static_cast<float>(rawR) +
                 0.7152f * static_cast<float>(rawG) +
-                0.0722f * static_cast<float>(rawB)
-            );
+                0.0722f * static_cast<float>(rawB)) / 255.0f;
 
-            brightness = std::clamp(static_cast<int>(static_cast<float>(brightness - 128) * contrast + 128.0f), 0, 255);
-            const size_t charIndex = (brightness * (numChars - 1)) / 255;
+            if (!retroColors && lum > 0.0f)
+            {
+                lum = std::pow(lum, gamma);
+            }
 
+            lum = std::clamp((lum - 0.5f) * contrast + 0.5f, 0.0f, 1.0f);
+
+            const auto charIndex = static_cast<size_t>(lum * (numChars - 1));
             char c = asciiChars[charIndex];
-            if (const char edgeChar = edgeMap[y * img.width + x]; edgeChar != ' ') c = edgeChar;
 
-            HSV hsv = RGBtoHSV(static_cast<float>(rawR) / 255.0f, static_cast<float>(rawG) / 255.0f,
+            if (const char edgeChar = edgeMap[y * img.width + x]; edgeChar != ' ')
+                c = edgeChar;
+
+            HSV hsv = RGBtoHSV(static_cast<float>(rawR) / 255.0f,
+                               static_cast<float>(rawG) / 255.0f,
                                static_cast<float>(rawB) / 255.0f);
 
             if (retroColors)
             {
                 hsv.v = 1.0f;
-
                 hsv.h = std::round(hsv.h / 60.0f) * 60.0f;
                 if (hsv.h >= 360.0f) hsv.h = 0.0f;
                 hsv.s = (hsv.s < 0.25f) ? 0.0f : 1.0f;
+            }
+            else
+            {
+                if (hsv.v > 0.0f) hsv.v = std::pow(hsv.v, gamma);
+
+                hsv.s = std::clamp(hsv.s * saturation, 0.0f, 1.0f);
             }
 
             int finalR, finalG, finalB;
@@ -137,7 +148,8 @@ AsciiFrame AsciiGenerator::GenerateStandard(const Image& img, const float contra
 }
 
 AsciiFrame AsciiGenerator::GenerateWordArt(const Image& img, const std::string& targetWord, const float contrast,
-                                           const float edgeThreshold, const bool retroColors)
+                                           const float edgeThreshold, const bool retroColors, const float saturation,
+                                           const float gamma)
 {
     constexpr std::string_view shadingChars = " .:-=+*";
     constexpr size_t numShading = shadingChars.length();
@@ -159,40 +171,50 @@ AsciiFrame AsciiGenerator::GenerateWordArt(const Image& img, const std::string& 
             const int rawG = img.pixelData[index + 1];
             const int rawB = img.pixelData[index + 2];
 
-            int brightness = static_cast<int>(
-                0.2126f * static_cast<float>(rawR) +
+            float lum = (0.2126f * static_cast<float>(rawR) +
                 0.7152f * static_cast<float>(rawG) +
-                0.0722f * static_cast<float>(rawB)
-            );
-            brightness = std::clamp(static_cast<int>(static_cast<float>(brightness - 128) * contrast + 128.0f), 0, 255);
+                0.0722f * static_cast<float>(rawB)) / 255.0f;
+
+            if (!retroColors && lum > 0.0f)
+            {
+                lum = std::pow(lum, gamma);
+            }
+
+            lum = std::clamp((lum - 0.5f) * contrast + 0.5f, 0.0f, 1.0f);
 
             char c;
-            if (brightness > 128)
+            if (lum > 0.5f)
             {
                 c = targetWord[wordIndex];
                 wordIndex = (wordIndex + 1) % targetWord.length();
             }
             else
             {
-                const size_t charIndex = (brightness * (numShading - 1)) / 128;
+                const float shadowLum = std::clamp(lum * 2.0f, 0.0f, 1.0f);
+                const auto charIndex = static_cast<size_t>(shadowLum * (numShading - 1));
                 c = shadingChars[charIndex];
             }
 
             if (const char edgeChar = edgeMap[y * img.width + x]; edgeChar != ' ')
-            {
                 c = edgeChar;
-            }
 
-            HSV hsv = RGBtoHSV(static_cast<float>(rawR) / 255.0f, static_cast<float>(rawG) / 255.0f,
+            HSV hsv = RGBtoHSV(static_cast<float>(rawR) / 255.0f,
+                               static_cast<float>(rawG) / 255.0f,
                                static_cast<float>(rawB) / 255.0f);
 
             if (retroColors)
             {
                 hsv.v = 1.0f;
-
                 hsv.h = std::round(hsv.h / 60.0f) * 60.0f;
                 if (hsv.h >= 360.0f) hsv.h = 0.0f;
                 hsv.s = (hsv.s < 0.25f) ? 0.0f : 1.0f;
+            }
+            else
+            {
+                if (hsv.v > 0.0f)
+                    hsv.v = std::pow(hsv.v, gamma);
+
+                hsv.s = std::clamp(hsv.s * saturation, 0.0f, 1.0f);
             }
 
             int finalR, finalG, finalB;
