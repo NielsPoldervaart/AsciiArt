@@ -104,7 +104,7 @@ std::vector<char> EdgeProcessor::GeneratePooledEdgeMap(const Image& highResImg, 
         const int startRow = t * rowsPerThread;
         const int endRow = (t == numThreads - 1) ? targetHeight : startRow + rowsPerThread;
 
-        futures.push_back(std::async(std::launch::async, [=, &pooledMap, &blur1, &blur2]()
+        futures.push_back(std::async(std::launch::async, [=, &highResImg, &pooledMap, &blur1, &blur2]()
         {
             for (int ty = startRow; ty < endRow; ++ty)
             {
