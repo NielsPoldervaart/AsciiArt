@@ -18,6 +18,7 @@ struct AppConfig
     bool retroColors = false;
     float saturation = 1.0f;
     float gamma = 1.0f;
+    bool dither = false;
 };
 
 AppConfig ParseArguments(const int argc, char* argv[])
@@ -85,6 +86,10 @@ AppConfig ParseArguments(const int argc, char* argv[])
         {
             config.retroColors = true;
         }
+        else if (arg == "--dither")
+        {
+            config.dither = true;
+        }
     }
 
     return config;
@@ -93,7 +98,7 @@ AppConfig ParseArguments(const int argc, char* argv[])
 int main(const int argc, char* argv[])
 {
     const auto [imagePath, targetWidth, customWord, useColor, showHelp, contrast, fontPath, outputPath, edgeThreshold,
-        retroColors, saturation, gamma] = ParseArguments(argc, argv);
+        retroColors, saturation, gamma, dither] = ParseArguments(argc, argv);
 
     if (showHelp || imagePath.empty())
     {
@@ -107,6 +112,7 @@ int main(const int argc, char* argv[])
         std::cout << "  --saturation, -s <num> Adjust color saturation multiplier (default: 1.0)\n";
         std::cout << "  --gamma, -g <num>      Adjust gamma curve (default: 1.0, < 1.0 is brighter, > 1.0 is darker)\n";
         std::cout << "  --retro                Use classic 8-color retro palette with max brightness\n";
+        std::cout << "  --dither               Apply dithering for smooth shading gradients\n";
         std::cout << "  --threshold, -et <num> Set Sobel edge detection threshold (default: 100.0)\n";
         std::cout << "  --font <path>          Path to a monospace .ttf font (default: fonts/VT323.ttf)\n";
         std::cout << "  --out <path>           Path to save the generated PNG (default: ascii.png)\n";
@@ -128,9 +134,10 @@ int main(const int argc, char* argv[])
     AsciiFrame frame;
     if (!customWord.empty())
         frame = AsciiGenerator::GenerateWordArt(myImage, customWord, contrast, edgeThreshold, retroColors, saturation,
-                                                gamma);
+                                                gamma, dither);
     else
-        frame = AsciiGenerator::GenerateStandard(myImage, contrast, edgeThreshold, retroColors, saturation, gamma);
+        frame = AsciiGenerator::GenerateStandard(myImage, contrast, edgeThreshold, retroColors, saturation, gamma,
+                                                 dither);
 
     std::cout << "\nRendering PNG...\n";
     ImageExporter::ExportToPng(frame, fontPath, outputPath, useColor);

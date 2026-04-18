@@ -18,15 +18,22 @@ namespace
 
         HSV hsv{0.0f, 0.0f, max};
 
-        if (hsv.v != 0.0f) hsv.s = chroma / hsv.v;
+        if (hsv.v != 0.0f)
+            hsv.s = chroma / hsv.v;
 
         if (chroma != 0.0f)
         {
-            if (max == r) hsv.h = std::fmod((g - b) / chroma, 6.0f);
-            else if (max == g) hsv.h = (b - r) / chroma + 2.0f;
-            else hsv.h = (r - g) / chroma + 4.0f;
+            if (max == r)
+                hsv.h = std::fmod((g - b) / chroma, 6.0f);
+            else if (max == g)
+                hsv.h = (b - r) / chroma + 2.0f;
+            else
+                hsv.h = (r - g) / chroma + 4.0f;
+
             hsv.h *= 60.0f;
-            if (hsv.h < 0.0f) hsv.h += 360.0f;
+
+            if (hsv.h < 0.0f)
+                hsv.h += 360.0f;
         }
         return hsv;
     }
@@ -82,7 +89,8 @@ namespace
 }
 
 AsciiFrame AsciiGenerator::GenerateStandard(const Image& img, const float contrast, const float edgeThreshold,
-                                            const bool retroColors, const float saturation, const float gamma)
+                                            const bool retroColors, const float saturation, const float gamma,
+                                            const bool dither)
 {
     constexpr std::string_view asciiChars = " .:-=+*#%@";
     constexpr size_t numChars = asciiChars.length();
@@ -93,6 +101,7 @@ AsciiFrame AsciiGenerator::GenerateStandard(const Image& img, const float contra
     frame.pixels.reserve(img.width * img.height);
 
     const std::vector<char> edgeMap = EdgeProcessor::GenerateEdgeMap(img, edgeThreshold);
+    std::vector lumError(img.width * img.height, 0.0f);
 
     for (int y = 0; y < img.height; y++)
     {
@@ -108,14 +117,30 @@ AsciiFrame AsciiGenerator::GenerateStandard(const Image& img, const float contra
                 0.0722f * static_cast<float>(rawB)) / 255.0f;
 
             if (!retroColors && lum > 0.0f)
-            {
                 lum = std::pow(lum, gamma);
-            }
 
             lum = std::clamp((lum - 0.5f) * contrast + 0.5f, 0.0f, 1.0f);
 
+            if (dither)
+                lum = std::clamp(lum + lumError[y * img.width + x], 0.0f, 1.0f);
+
             const auto charIndex = static_cast<size_t>(lum * (numChars - 1));
             char c = asciiChars[charIndex];
+
+            if (dither)
+            {
+                const float quantizedLum = static_cast<float>(charIndex) / static_cast<float>(numChars - 1);
+                const float error = lum - quantizedLum;
+
+                if (x + 1 < img.width)
+                    lumError[y * img.width + (x + 1)] += error * (7.0f / 16.0f);
+                if (x - 1 >= 0 && y + 1 < img.height)
+                    lumError[(y + 1) * img.width + (x - 1)] += error * (3.0f / 16.0f);
+                if (y + 1 < img.height)
+                    lumError[(y + 1) * img.width + x] += error * (5.0f / 16.0f);
+                if (x + 1 < img.width && y + 1 < img.height)
+                    lumError[(y + 1) * img.width + (x + 1)] += error * (1.0f / 16.0f);
+            }
 
             if (const char edgeChar = edgeMap[y * img.width + x]; edgeChar != ' ')
                 c = edgeChar;
@@ -133,7 +158,8 @@ AsciiFrame AsciiGenerator::GenerateStandard(const Image& img, const float contra
             }
             else
             {
-                if (hsv.v > 0.0f) hsv.v = std::pow(hsv.v, gamma);
+                if (hsv.v > 0.0f)
+                    hsv.v = std::pow(hsv.v, gamma);
 
                 hsv.s = std::clamp(hsv.s * saturation, 0.0f, 1.0f);
             }
@@ -149,7 +175,7 @@ AsciiFrame AsciiGenerator::GenerateStandard(const Image& img, const float contra
 
 AsciiFrame AsciiGenerator::GenerateWordArt(const Image& img, const std::string& targetWord, const float contrast,
                                            const float edgeThreshold, const bool retroColors, const float saturation,
-                                           const float gamma)
+                                           const float gamma, const bool dither)
 {
     constexpr std::string_view shadingChars = " .:-=+*";
     constexpr size_t numShading = shadingChars.length();
@@ -161,6 +187,7 @@ AsciiFrame AsciiGenerator::GenerateWordArt(const Image& img, const std::string& 
     frame.pixels.reserve(img.width * img.height);
 
     const std::vector<char> edgeMap = EdgeProcessor::GenerateEdgeMap(img, edgeThreshold);
+    std::vector lumError(img.width * img.height, 0.0f);
 
     for (int y = 0; y < img.height; y++)
     {
@@ -176,23 +203,47 @@ AsciiFrame AsciiGenerator::GenerateWordArt(const Image& img, const std::string& 
                 0.0722f * static_cast<float>(rawB)) / 255.0f;
 
             if (!retroColors && lum > 0.0f)
-            {
                 lum = std::pow(lum, gamma);
-            }
 
             lum = std::clamp((lum - 0.5f) * contrast + 0.5f, 0.0f, 1.0f);
 
+            if (dither)
+                lum = std::clamp(lum + lumError[y * img.width + x], 0.0f, 1.0f);
+
             char c;
+            float error = 0.0f;
+
             if (lum > 0.5f)
             {
                 c = targetWord[wordIndex];
                 wordIndex = (wordIndex + 1) % targetWord.length();
+
+                if (dither)
+                    error = lum - 1.0f;
             }
             else
             {
                 const float shadowLum = std::clamp(lum * 2.0f, 0.0f, 1.0f);
                 const auto charIndex = static_cast<size_t>(shadowLum * (numShading - 1));
                 c = shadingChars[charIndex];
+
+                if (dither)
+                {
+                    const float quantizedLum = static_cast<float>(charIndex) / static_cast<float>(numShading - 1);
+                    error = lum - (quantizedLum / 2.0f); // Scale it back down to the 0.0 - 0.5 range
+                }
+            }
+
+            if (dither && error != 0.0f)
+            {
+                if (x + 1 < img.width)
+                    lumError[y * img.width + (x + 1)] += error * (7.0f / 16.0f);
+                if (x - 1 >= 0 && y + 1 < img.height)
+                    lumError[(y + 1) * img.width + (x - 1)] += error * (3.0f / 16.0f);
+                if (y + 1 < img.height)
+                    lumError[(y + 1) * img.width + x] += error * (5.0f / 16.0f);
+                if (x + 1 < img.width && y + 1 < img.height)
+                    lumError[(y + 1) * img.width + (x + 1)] += error * (1.0f / 16.0f);
             }
 
             if (const char edgeChar = edgeMap[y * img.width + x]; edgeChar != ' ')
@@ -206,8 +257,10 @@ AsciiFrame AsciiGenerator::GenerateWordArt(const Image& img, const std::string& 
             {
                 hsv.v = 1.0f;
                 hsv.h = std::round(hsv.h / 60.0f) * 60.0f;
-                if (hsv.h >= 360.0f) hsv.h = 0.0f;
-                hsv.s = (hsv.s < 0.25f) ? 0.0f : 1.0f;
+
+                if (hsv.h >= 360.0f)
+                    hsv.h = 0.0f;
+ hsv.s = (hsv.s < 0.25f) ? 0.0f : 1.0f;
             }
             else
             {
