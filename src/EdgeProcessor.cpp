@@ -56,45 +56,91 @@ namespace
     }
 }
 
-std::vector<char> EdgeProcessor::GenerateEdgeMap(const Image& img, const float edgeThreshold)
+std::vector<char> EdgeProcessor::GeneratePooledEdgeMap(const Image& highResImg, const int targetWidth,
+                                                       const int targetHeight, const float edgeThreshold)
 {
-    std::vector<char> edgeMap(img.width * img.height, ' ');
-
-    const std::vector<float> gray = GetGrayscaleMap(img);
+    const std::vector<float> gray = GetGrayscaleMap(highResImg);
 
     constexpr float gaussianKernel[9] = {
         1.0f / 16.0f, 2.0f / 16.0f, 1.0f / 16.0f,
         2.0f / 16.0f, 4.0f / 16.0f, 2.0f / 16.0f,
         1.0f / 16.0f, 2.0f / 16.0f, 1.0f / 16.0f
     };
-    const std::vector<float> blur1 = Apply3x3Kernel(gray, img.width, img.height, gaussianKernel);
+    const std::vector<float> blur1 = Apply3x3Kernel(gray, highResImg.width, highResImg.height, gaussianKernel);
+    const std::vector<float> blur2 = Apply3x3Kernel(blur1, highResImg.width, highResImg.height, gaussianKernel);
 
-    const std::vector<float> blur2 = Apply3x3Kernel(blur1, img.width, img.height, gaussianKernel);
+    std::vector pooledMap(targetWidth * targetHeight, ' ');
+    const float boxWidth = static_cast<float>(highResImg.width) / static_cast<float>(targetWidth);
+    const float boxHeight = static_cast<float>(highResImg.height) / static_cast<float>(targetHeight);
 
-    for (int y = 1; y < img.height - 1; ++y)
+    for (int ty = 0; ty < targetHeight; ++ty)
     {
-        for (int x = 1; x < img.width - 1; ++x)
+        for (int tx = 0; tx < targetWidth; ++tx)
         {
-            const int idx = y * img.width + x;
+            const int startX = static_cast<int>(static_cast<float>(tx) * boxWidth);
+            const int endX = static_cast<int>(static_cast<float>((tx + 1)) * boxWidth);
+            const int startY = static_cast<int>(static_cast<float>(ty) * boxHeight);
+            const int endY = static_cast<int>(static_cast<float>((ty + 1)) * boxHeight);
 
-            if (const float dogMagnitude = (blur1[idx] - blur2[idx]) * 10.0f; std::abs(dogMagnitude) > edgeThreshold)
+            int votes[4] = {0, 0, 0, 0}; // 0='/', 1='\', 2='_', 3='|'
+            int totalEdges = 0;
+
+            for (int y = startY; y < endY; ++y)
             {
-                const float tl = blur1[(y - 1) * img.width + (x - 1)];
-                const float tc = blur1[(y - 1) * img.width + x];
-                const float tr = blur1[(y - 1) * img.width + (x + 1)];
-                const float ml = blur1[y * img.width + (x - 1)];
-                const float mr = blur1[y * img.width + (x + 1)];
-                const float bl = blur1[(y + 1) * img.width + (x - 1)];
-                const float bc = blur1[(y + 1) * img.width + x];
-                const float br = blur1[(y + 1) * img.width + (x + 1)];
+                for (int x = startX; x < endX; ++x)
+                {
+                    if (x == 0 || y == 0 || x >= highResImg.width - 1 || y >= highResImg.height - 1) continue;
 
-                const float gx = -tl + tr - 2.0f * ml + 2.0f * mr - bl + br;
-                const float gy = tl + 2.0f * tc + tr - bl - 2.0f * bc - br;
+                    const int idx = y * highResImg.width + x;
 
-                edgeMap[idx] = GetSobelAngleChar(gx, gy);
+                    if (const float dogMag = std::abs((blur1[idx] - blur2[idx]) * 10.0f); dogMag > edgeThreshold)
+                    {
+                        const float tl = blur1[(y - 1) * highResImg.width + (x - 1)];
+                        const float tc = blur1[(y - 1) * highResImg.width + x];
+                        const float tr = blur1[(y - 1) * highResImg.width + (x + 1)];
+                        const float ml = blur1[y * highResImg.width + (x - 1)];
+                        const float mr = blur1[y * highResImg.width + (x + 1)];
+                        const float bl = blur1[(y + 1) * highResImg.width + (x - 1)];
+                        const float bc = blur1[(y + 1) * highResImg.width + x];
+                        const float br = blur1[(y + 1) * highResImg.width + (x + 1)];
+
+                        const float gx = -tl + tr - 2.0f * ml + 2.0f * mr - bl + br;
+                        const float gy = tl + 2.0f * tc + tr - bl - 2.0f * bc - br;
+
+                        const char edgeChar = GetSobelAngleChar(gx, gy);
+                        if (edgeChar == '/') votes[0]++;
+                        else if (edgeChar == '\\') votes[1]++;
+                        else if (edgeChar == '_') votes[2]++;
+                        else votes[3]++;
+
+                        totalEdges++;
+                    }
+                }
             }
+
+            const int requiredEdges = static_cast<int>(std::max(boxWidth, boxHeight) * 0.5f);
+            if (totalEdges < requiredEdges)
+            {
+                continue;
+            }
+
+            int maxVotes = 0;
+            int winnerIdx = -1;
+            for (int i = 0; i < 4; i++)
+            {
+                if (votes[i] > maxVotes)
+                {
+                    maxVotes = votes[i];
+                    winnerIdx = i;
+                }
+            }
+
+            if (winnerIdx == 0) pooledMap[ty * targetWidth + tx] = '/';
+            else if (winnerIdx == 1) pooledMap[ty * targetWidth + tx] = '\\';
+            else if (winnerIdx == 2) pooledMap[ty * targetWidth + tx] = '_';
+            else if (winnerIdx == 3) pooledMap[ty * targetWidth + tx] = '|';
         }
     }
 
-    return edgeMap;
+    return pooledMap;
 }

@@ -88,7 +88,7 @@ namespace
     }
 }
 
-AsciiFrame AsciiGenerator::GenerateStandard(const Image& img, const float contrast, const float edgeThreshold,
+AsciiFrame AsciiGenerator::GenerateStandard(const Image& img, const std::vector<char>& edgeMap, const float contrast,
                                             const bool retroColors, const float saturation, const float gamma,
                                             const bool dither)
 {
@@ -100,7 +100,6 @@ AsciiFrame AsciiGenerator::GenerateStandard(const Image& img, const float contra
     frame.height = img.height;
     frame.pixels.reserve(img.width * img.height);
 
-    const std::vector<char> edgeMap = EdgeProcessor::GenerateEdgeMap(img, edgeThreshold);
     std::vector lumError(img.width * img.height, 0.0f);
 
     for (int y = 0; y < img.height; y++)
@@ -173,9 +172,10 @@ AsciiFrame AsciiGenerator::GenerateStandard(const Image& img, const float contra
     return frame;
 }
 
-AsciiFrame AsciiGenerator::GenerateWordArt(const Image& img, const std::string& targetWord, const float contrast,
-                                           const float edgeThreshold, const bool retroColors, const float saturation,
-                                           const float gamma, const bool dither)
+AsciiFrame AsciiGenerator::GenerateWordArt(const Image& img, const std::string& targetWord,
+                                           const std::vector<char>& edgeMap, const float contrast,
+                                           const bool retroColors, const float saturation, const float gamma,
+                                           const bool dither)
 {
     constexpr std::string_view shadingChars = " .:-=+*";
     constexpr size_t numShading = shadingChars.length();
@@ -186,7 +186,6 @@ AsciiFrame AsciiGenerator::GenerateWordArt(const Image& img, const std::string& 
     frame.height = img.height;
     frame.pixels.reserve(img.width * img.height);
 
-    const std::vector<char> edgeMap = EdgeProcessor::GenerateEdgeMap(img, edgeThreshold);
     std::vector lumError(img.width * img.height, 0.0f);
 
     for (int y = 0; y < img.height; y++)
@@ -260,7 +259,7 @@ AsciiFrame AsciiGenerator::GenerateWordArt(const Image& img, const std::string& 
 
                 if (hsv.h >= 360.0f)
                     hsv.h = 0.0f;
- hsv.s = (hsv.s < 0.25f) ? 0.0f : 1.0f;
+                hsv.s = (hsv.s < 0.25f) ? 0.0f : 1.0f;
             }
             else
             {
