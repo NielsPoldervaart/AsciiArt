@@ -7,11 +7,17 @@ on:
 
 jobs:
   build:
-    name: Build on ${{ matrix.os }}
+    name: Build on ${{ matrix.name }}
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ ubuntu-latest, windows-latest, macos-latest ]
+        include:
+          - os: ubuntu-latest
+            name: Linux
+          - os: windows-latest
+            name: Windows
+          - os: macos-latest
+            name: macOS
 
     steps:
       - name: Checkout Code
@@ -26,7 +32,7 @@ jobs:
       - name: Package Files into a Clean Folder
         shell: bash
         run: |
-          FOLDER_NAME="AsciiArt-${{ matrix.os }}"
+          FOLDER_NAME="AsciiArt-${{ matrix.name }}"
           mkdir -p $FOLDER_NAME/fonts
           
           cp -r build/fonts/* $FOLDER_NAME/fonts/ 2>/dev/null || true
@@ -39,8 +45,8 @@ jobs:
       - name: Upload Artifacts
         uses: actions/upload-artifact@v7
         with:
-          name: package-${{ matrix.os }}
-          path: AsciiArt-${{ matrix.os }}.zip
+          name: package-${{ matrix.name }}
+          path: AsciiArt-${{ matrix.name }}.zip
 
   release:
     name: Create GitHub Release
