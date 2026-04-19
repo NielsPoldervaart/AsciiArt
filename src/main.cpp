@@ -4,6 +4,7 @@
 #include "AsciiGenerator.h"
 #include "EdgeProcessor.h"
 #include "ImageExporter.h"
+#include "AsciiExporter.h"
 
 struct AppConfig
 {
@@ -20,6 +21,8 @@ struct AppConfig
     float saturation = 1.0f;
     float gamma = 1.0f;
     bool dither = false;
+    std::string txtPath;
+    std::string htmlPath;
 };
 
 AppConfig ParseArguments(const int argc, char* argv[])
@@ -91,6 +94,14 @@ AppConfig ParseArguments(const int argc, char* argv[])
         {
             config.dither = true;
         }
+        else if (arg == "--txt" && i + 1 < argc)
+        {
+            config.txtPath = argv[++i];
+        }
+        else if (arg == "--html" && i + 1 < argc)
+        {
+            config.htmlPath = argv[++i];
+        }
     }
 
     return config;
@@ -99,7 +110,7 @@ AppConfig ParseArguments(const int argc, char* argv[])
 int main(const int argc, char* argv[])
 {
     const auto [imagePath, targetWidth, customWord, useColor, showHelp, contrast, fontPath, outputPath, edgeThreshold,
-        retroColors, saturation, gamma, dither] = ParseArguments(argc, argv);
+        retroColors, saturation, gamma, dither, txtPath, htmlPath] = ParseArguments(argc, argv);
 
     if (showHelp || imagePath.empty())
     {
@@ -117,6 +128,8 @@ int main(const int argc, char* argv[])
         std::cout << "  --threshold, -et <num> Set Sobel edge detection threshold (default: 100.0)\n";
         std::cout << "  --font <path>          Path to a monospace .ttf font (default: fonts/VT323.ttf)\n";
         std::cout << "  --out <path>           Path to save the generated PNG (default: ascii.png)\n";
+        std::cout << "  --txt <path>           Path to save raw text ASCII (e.g., output.txt)\n";
+        std::cout << "  --html <path>          Path to save dark-mode HTML (e.g., output.html)\n";
         std::cout << "  --help, -h             Show this help menu\n";
         return 0;
     }
@@ -151,6 +164,20 @@ int main(const int argc, char* argv[])
 
     std::cout << "Rendering PNG...\n";
     ImageExporter::ExportToPng(frame, fontPath, outputPath, useColor);
+
+    if (!txtPath.empty())
+    {
+        std::cout << "Exporting TXT...\n";
+        if (AsciiExporter::SaveTxt(txtPath, frame))
+            std::cout << "Saved text export to " << txtPath << "\n";
+    }
+
+    if (!htmlPath.empty())
+    {
+        std::cout << "Exporting HTML...\n";
+        if (AsciiExporter::SaveHtml(htmlPath, frame, fontPath))
+            std::cout << "Saved HTML export to " << htmlPath << "\n";
+    }
 
     return 0;
 }
