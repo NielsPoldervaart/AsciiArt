@@ -23,15 +23,24 @@ jobs:
       - name: Build
         run: cmake --build build --config Release
 
+      - name: Package Files into a Clean Folder
+        shell: bash
+        run: |
+          FOLDER_NAME="AsciiArt-${{ matrix.os }}"
+          mkdir -p $FOLDER_NAME/fonts
+          
+          cp -r build/fonts/* $FOLDER_NAME/fonts/ 2>/dev/null || true
+          
+          cp build/AsciiArt $FOLDER_NAME/ 2>/dev/null || true
+          cp build/Release/AsciiArt.exe $FOLDER_NAME/ 2>/dev/null || true
+          
+          cmake -E tar cfv $FOLDER_NAME.zip --format=zip $FOLDER_NAME/
+
       - name: Upload Artifacts
         uses: actions/upload-artifact@v7
         with:
-          name: AsciiArt-${{ matrix.os }}
-          path: |
-            build/AsciiArt
-            build/Release/AsciiArt.exe
-            build/fonts/
-          if-no-files-found: ignore
+          name: package-${{ matrix.os }}
+          path: AsciiArt-${{ matrix.os }}.zip
 
   release:
     name: Create GitHub Release
@@ -47,7 +56,7 @@ jobs:
       - name: Create Release and Upload Assets
         uses: softprops/action-gh-release@v3
         with:
-          files: artifacts/**/*
+          files: artifacts/**/*.zip
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
