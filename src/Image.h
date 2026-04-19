@@ -14,6 +14,9 @@ public:
     explicit Image(const std::string& path);
     ~Image();
 
+    Image(const Image&) = delete;
+    Image& operator=(const Image&) = delete;
+
     void PrintInfo() const;
     [[nodiscard]] bool IsValid() const;
     void Resize(int targetWidth, float fontRatio = 2.0f);

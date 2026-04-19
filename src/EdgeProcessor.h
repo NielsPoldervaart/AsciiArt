@@ -5,5 +5,6 @@
 class EdgeProcessor
 {
 public:
-    static std::vector<char> GenerateEdgeMap(const Image& img, float edgeThreshold);
+    static std::vector<char> GeneratePooledEdgeMap(const Image& highResImg, int targetWidth, int targetHeight,
+                                                   float edgeThreshold);
 };
