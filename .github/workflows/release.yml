@@ -30,7 +30,7 @@ jobs:
         run: cmake --build build --config Release
 
       - name: Package Windows and Linux
-        if: matrix.name != 'macos'
+        if: matrix.name != 'macOS'
         shell: bash
         run: |
           FOLDER_NAME="AsciiArt-${{ matrix.name }}"
@@ -41,7 +41,7 @@ jobs:
           cmake -E tar cfv $FOLDER_NAME.zip --format=zip $FOLDER_NAME/
 
       - name: Code Sign and Notarize macOS
-        if: matrix.name == 'macos'
+        if: matrix.name == 'macOS'
         env:
           CERT_BASE64: ${{ secrets.MAC_CERTS_BASE64 }}
           CERT_PASSWORD: ${{ secrets.MAC_CERTS_PASSWORD }}
@@ -49,7 +49,7 @@ jobs:
           APP_PASSWORD: ${{ secrets.MAC_APP_PASSWORD }}
           TEAM_ID: ${{ secrets.MAC_TEAM_ID }}
         run: |
-          FOLDER_NAME="AsciiArt-macOS"
+          FOLDER_NAME="AsciiArt-${{ matrix.name }}"
           mkdir -p $FOLDER_NAME/fonts
           cp -r build/fonts/* $FOLDER_NAME/fonts/ 2>/dev/null || true
           cp build/AsciiArt $FOLDER_NAME/
@@ -65,9 +65,9 @@ jobs:
           
           codesign --force --options runtime --sign "Developer ID Application" $FOLDER_NAME/AsciiArt
           
-          ditto -c -k --keepParent $FOLDER_NAME AsciiArt-macos.zip
+          ditto -c -k --keepParent $FOLDER_NAME AsciiArt-${{ matrix.name }}.zip
           
-          xcrun notarytool submit AsciiArt-macos.zip --apple-id "$APPLE_ID" --password "$APP_PASSWORD" --team-id "$TEAM_ID" --wait
+          xcrun notarytool submit AsciiArt-${{ matrix.name }}.zip --apple-id "$APPLE_ID" --password "$APP_PASSWORD" --team-id "$TEAM_ID" --wait
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v7
