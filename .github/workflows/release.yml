@@ -29,18 +29,45 @@ jobs:
       - name: Build
         run: cmake --build build --config Release
 
-      - name: Package Files into a Clean Folder
+      - name: Package Windows and Linux
+        if: matrix.name != 'macos'
         shell: bash
         run: |
           FOLDER_NAME="AsciiArt-${{ matrix.name }}"
           mkdir -p $FOLDER_NAME/fonts
-          
           cp -r build/fonts/* $FOLDER_NAME/fonts/ 2>/dev/null || true
-          
           cp build/AsciiArt $FOLDER_NAME/ 2>/dev/null || true
           cp build/Release/AsciiArt.exe $FOLDER_NAME/ 2>/dev/null || true
-          
           cmake -E tar cfv $FOLDER_NAME.zip --format=zip $FOLDER_NAME/
+
+      - name: Code Sign and Notarize macOS
+        if: matrix.name == 'macos'
+        env:
+          CERT_BASE64: ${{ secrets.MAC_CERTS_BASE64 }}
+          CERT_PASSWORD: ${{ secrets.MAC_CERTS_PASSWORD }}
+          APPLE_ID: ${{ secrets.MAC_APPLE_ID }}
+          APP_PASSWORD: ${{ secrets.MAC_APP_PASSWORD }}
+          TEAM_ID: ${{ secrets.MAC_TEAM_ID }}
+        run: |
+          FOLDER_NAME="AsciiArt-macOS"
+          mkdir -p $FOLDER_NAME/fonts
+          cp -r build/fonts/* $FOLDER_NAME/fonts/ 2>/dev/null || true
+          cp build/AsciiArt $FOLDER_NAME/
+          
+          CERT_PATH=$RUNNER_TEMP/build_certificate.p12
+          KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
+          echo -n "$CERT_BASE64" | base64 --decode -o $CERT_PATH
+          security create-keychain -p "" $KEYCHAIN_PATH
+          security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
+          security unlock-keychain -p "" $KEYCHAIN_PATH
+          security import $CERT_PATH -P "$CERT_PASSWORD" -A -t cert -f pkcs12 -k $KEYCHAIN_PATH
+          security list-keychain -d user -s $KEYCHAIN_PATH
+          
+          codesign --force --options runtime --sign "Developer ID Application" $FOLDER_NAME/AsciiArt
+          
+          ditto -c -k --keepParent $FOLDER_NAME AsciiArt-macos.zip
+          
+          xcrun notarytool submit AsciiArt-macos.zip --apple-id "$APPLE_ID" --password "$APP_PASSWORD" --team-id "$TEAM_ID" --wait
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v7
