@@ -24,7 +24,7 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Configure CMake
-        run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DAPP_VERSION="${{ github.ref_name }}"
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DENABLE_UPDATER=ON -DAPP_VERSION="${{ github.ref_name }}" -DGITHUB_REPO_OWNER="${{ github.repository_owner }}"
 
       - name: Build
         run: cmake --build build --config Release
