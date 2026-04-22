@@ -39,10 +39,10 @@ UpdateInfo UpdateChecker::CheckForUpdates(const std::string& repoOwner, const st
 
     std::string jsonResponse = ExecCommand(cmd.c_str());
 
-    if (jsonResponse.empty() || jsonResponse.find(R"("message": "Not Found")") != std::string::npos)
+    if (jsonResponse.empty() || jsonResponse.find(R"("message":"Not Found")") != std::string::npos)
         return info;
 
-    std::string searchString = R"("tag_name": ")";
+    std::string searchString = R"("tag_name":")";
     if (size_t startPos = jsonResponse.find(searchString); startPos != std::string::npos)
     {
         startPos += searchString.length();
