@@ -7,6 +7,10 @@
 #include "AsciiExporter.h"
 #include "UpdateChecker.h"
 
+#ifndef APP_VERSION
+#define APP_VERSION "vLocal-Dev"
+#endif
+
 struct AppConfig
 {
     std::string imagePath;
@@ -108,17 +112,17 @@ AppConfig ParseArguments(const int argc, char* argv[])
     return config;
 }
 
-constexpr std::string APP_VERSION = "v2.1.0";
+constexpr std::string CURRENT_VERSION = APP_VERSION;
 
 int main(const int argc, char* argv[])
 {
     std::cout << "Checking for updates...\n";
 
     if (auto [updateAvailable, latestVersion, releaseUrl] = UpdateChecker::CheckForUpdates(
-        "NielsPoldervaart", "AsciiArt", APP_VERSION); updateAvailable)
+        "NielsPoldervaart", "AsciiArt", CURRENT_VERSION); updateAvailable)
     {
         std::cout << "\n======================================================\n";
-        std::cout << " NEW UPDATE AVAILABLE: " << latestVersion << " (Current: " << APP_VERSION << ")\n";
+        std::cout << " NEW UPDATE AVAILABLE: " << latestVersion << " (Current: " << CURRENT_VERSION << ")\n";
         std::cout << " Download here: " << releaseUrl << "\n";
         std::cout << "======================================================\n\n";
     }
