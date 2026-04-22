@@ -5,6 +5,7 @@
 #include "EdgeProcessor.h"
 #include "ImageExporter.h"
 #include "AsciiExporter.h"
+#include "UpdateChecker.h"
 
 struct AppConfig
 {
@@ -107,8 +108,21 @@ AppConfig ParseArguments(const int argc, char* argv[])
     return config;
 }
 
+constexpr std::string APP_VERSION = "v2.1.0";
+
 int main(const int argc, char* argv[])
 {
+    std::cout << "Checking for updates...\n";
+
+    if (auto [updateAvailable, latestVersion, releaseUrl] = UpdateChecker::CheckForUpdates(
+        "NielsPoldervaart", "AsciiArt", APP_VERSION); updateAvailable)
+    {
+        std::cout << "\n======================================================\n";
+        std::cout << " NEW UPDATE AVAILABLE: " << latestVersion << " (Current: " << APP_VERSION << ")\n";
+        std::cout << " Download here: " << releaseUrl << "\n";
+        std::cout << "======================================================\n\n";
+    }
+
     const auto [imagePath, targetWidth, customWord, useColor, showHelp, contrast, fontPath, outputPath, edgeThreshold,
         retroColors, saturation, gamma, dither, txtPath, htmlPath] = ParseArguments(argc, argv);
 
