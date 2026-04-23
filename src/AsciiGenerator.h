@@ -1,5 +1,6 @@
 #pragma once
 #include "Image.h"
+#include "AppConfig.h"
 #include <string>
 #include <vector>
 
@@ -19,12 +20,8 @@ struct AsciiFrame
 class AsciiGenerator
 {
 public:
-    static AsciiFrame GenerateStandard(const Image& img, const std::vector<char>& edgeMap, float contrast = 1.0f,
-                                       bool retroColors = false, float saturation = 1.0f, float gamma = 1.0f,
-                                       bool dither = false);
+    AsciiGenerator() = delete;
 
-    static AsciiFrame GenerateWordArt(const Image& img, const std::string& targetWord, const std::vector<char>& edgeMap,
-                                      float contrast = 1.0f,
-                                      bool retroColors = false, float saturation = 1.0f, float gamma = 1.0f,
-                                      bool dither = false);
+    static AsciiFrame GenerateStandard(const Image& img, const std::vector<char>& edgeMap, const AppConfig& config);
+    static AsciiFrame GenerateWordArt(const Image& img, const std::vector<char>& edgeMap, const AppConfig& config);
 };
