@@ -87,6 +87,58 @@ namespace
         g = static_cast<int>((gf + m) * 255.0f);
         b = static_cast<int>((bf + m) * 255.0f);
     }
+
+    float CalculateBaseLuminance(const int r, const int g, const int b, const AppConfig& config)
+    {
+        float lum = (0.2126f * static_cast<float>(r) +
+            0.7152f * static_cast<float>(g) +
+            0.0722f * static_cast<float>(b)) / 255.0f;
+
+        if (!config.retroColors && lum > 0.0f)
+            lum = std::pow(lum, config.gamma);
+
+        return std::clamp((lum - 0.5f) * config.contrast + 0.5f, 0.0f, 1.0f);
+    }
+
+    void DistributeDitherError(std::vector<float>& lumError, const int x, const int y, const int width,
+                               const int height, const float error)
+    {
+        if (error == 0.0f) return;
+
+        if (x + 1 < width)
+            lumError[y * width + (x + 1)] += error * (7.0f / 16.0f);
+        if (x - 1 >= 0 && y + 1 < height)
+            lumError[(y + 1) * width + (x - 1)] += error * (3.0f / 16.0f);
+        if (y + 1 < height)
+            lumError[(y + 1) * width + x] += error * (5.0f / 16.0f);
+        if (x + 1 < width && y + 1 < height)
+            lumError[(y + 1) * width + (x + 1)] += error * (1.0f / 16.0f);
+    }
+
+    void CalculateFinalColor(const int rawR, const int rawG, const int rawB, const AppConfig& config, int& finalR,
+                             int& finalG, int& finalB)
+    {
+        HSV hsv = RGBtoHSV(static_cast<float>(rawR) / 255.0f,
+                           static_cast<float>(rawG) / 255.0f,
+                           static_cast<float>(rawB) / 255.0f);
+
+        if (config.retroColors)
+        {
+            hsv.v = 1.0f;
+            hsv.h = std::round(hsv.h / 60.0f) * 60.0f;
+            if (hsv.h >= 360.0f) hsv.h = 0.0f;
+            hsv.s = (hsv.s < 0.25f) ? 0.0f : 1.0f;
+        }
+        else
+        {
+            if (hsv.v > 0.0f)
+                hsv.v = std::pow(hsv.v, config.gamma);
+
+            hsv.s = std::clamp(hsv.s * config.saturation, 0.0f, 1.0f);
+        }
+
+        HSVtoRGB(hsv, finalR, finalG, finalB);
+    }
 }
 
 AsciiFrame AsciiGenerator::GenerateStandard(const Image& img, const std::vector<char>& edgeMap, const AppConfig& config)
@@ -110,14 +162,7 @@ AsciiFrame AsciiGenerator::GenerateStandard(const Image& img, const std::vector<
             const int rawG = img.pixelData[index + 1];
             const int rawB = img.pixelData[index + 2];
 
-            float lum = (0.2126f * static_cast<float>(rawR) +
-                0.7152f * static_cast<float>(rawG) +
-                0.0722f * static_cast<float>(rawB)) / 255.0f;
-
-            if (!config.retroColors && lum > 0.0f)
-                lum = std::pow(lum, config.gamma);
-
-            lum = std::clamp((lum - 0.5f) * config.contrast + 0.5f, 0.0f, 1.0f);
+            float lum = CalculateBaseLuminance(rawR, rawG, rawB, config);
 
             if (config.dither)
                 lum = std::clamp(lum + lumError[y * img.width + x], 0.0f, 1.0f);
@@ -128,42 +173,14 @@ AsciiFrame AsciiGenerator::GenerateStandard(const Image& img, const std::vector<
             if (config.dither)
             {
                 const float quantizedLum = static_cast<float>(charIndex) / static_cast<float>(numChars - 1);
-                const float error = lum - quantizedLum;
-
-                if (x + 1 < img.width)
-                    lumError[y * img.width + (x + 1)] += error * (7.0f / 16.0f);
-                if (x - 1 >= 0 && y + 1 < img.height)
-                    lumError[(y + 1) * img.width + (x - 1)] += error * (3.0f / 16.0f);
-                if (y + 1 < img.height)
-                    lumError[(y + 1) * img.width + x] += error * (5.0f / 16.0f);
-                if (x + 1 < img.width && y + 1 < img.height)
-                    lumError[(y + 1) * img.width + (x + 1)] += error * (1.0f / 16.0f);
+                DistributeDitherError(lumError, x, y, img.width, img.height, lum - quantizedLum);
             }
 
             if (const char edgeChar = edgeMap[y * img.width + x]; edgeChar != ' ')
                 c = edgeChar;
 
-            HSV hsv = RGBtoHSV(static_cast<float>(rawR) / 255.0f,
-                               static_cast<float>(rawG) / 255.0f,
-                               static_cast<float>(rawB) / 255.0f);
-
-            if (config.retroColors)
-            {
-                hsv.v = 1.0f;
-                hsv.h = std::round(hsv.h / 60.0f) * 60.0f;
-                if (hsv.h >= 360.0f) hsv.h = 0.0f;
-                hsv.s = (hsv.s < 0.25f) ? 0.0f : 1.0f;
-            }
-            else
-            {
-                if (hsv.v > 0.0f)
-                    hsv.v = std::pow(hsv.v, config.gamma);
-
-                hsv.s = std::clamp(hsv.s * config.saturation, 0.0f, 1.0f);
-            }
-
             int finalR, finalG, finalB;
-            HSVtoRGB(hsv, finalR, finalG, finalB);
+            CalculateFinalColor(rawR, rawG, rawB, config, finalR, finalG, finalB);
 
             frame.pixels.push_back({c, finalR, finalG, finalB});
         }
@@ -193,14 +210,7 @@ AsciiFrame AsciiGenerator::GenerateWordArt(const Image& img, const std::vector<c
             const int rawG = img.pixelData[index + 1];
             const int rawB = img.pixelData[index + 2];
 
-            float lum = (0.2126f * static_cast<float>(rawR) +
-                0.7152f * static_cast<float>(rawG) +
-                0.0722f * static_cast<float>(rawB)) / 255.0f;
-
-            if (!config.retroColors && lum > 0.0f)
-                lum = std::pow(lum, config.gamma);
-
-            lum = std::clamp((lum - 0.5f) * config.contrast + 0.5f, 0.0f, 1.0f);
+            float lum = CalculateBaseLuminance(rawR, rawG, rawB, config);
 
             if (config.dither)
                 lum = std::clamp(lum + lumError[y * img.width + x], 0.0f, 1.0f);
@@ -225,48 +235,18 @@ AsciiFrame AsciiGenerator::GenerateWordArt(const Image& img, const std::vector<c
                 if (config.dither)
                 {
                     const float quantizedLum = static_cast<float>(charIndex) / static_cast<float>(numShading - 1);
-                    error = lum - (quantizedLum / 2.0f); // Scale it back down to the 0.0 - 0.5 range
+                    error = lum - (quantizedLum / 2.0f);
                 }
             }
 
-            if (config.dither && error != 0.0f)
-            {
-                if (x + 1 < img.width)
-                    lumError[y * img.width + (x + 1)] += error * (7.0f / 16.0f);
-                if (x - 1 >= 0 && y + 1 < img.height)
-                    lumError[(y + 1) * img.width + (x - 1)] += error * (3.0f / 16.0f);
-                if (y + 1 < img.height)
-                    lumError[(y + 1) * img.width + x] += error * (5.0f / 16.0f);
-                if (x + 1 < img.width && y + 1 < img.height)
-                    lumError[(y + 1) * img.width + (x + 1)] += error * (1.0f / 16.0f);
-            }
+            if (config.dither)
+                DistributeDitherError(lumError, x, y, img.width, img.height, error);
 
             if (const char edgeChar = edgeMap[y * img.width + x]; edgeChar != ' ')
                 c = edgeChar;
 
-            HSV hsv = RGBtoHSV(static_cast<float>(rawR) / 255.0f,
-                               static_cast<float>(rawG) / 255.0f,
-                               static_cast<float>(rawB) / 255.0f);
-
-            if (config.retroColors)
-            {
-                hsv.v = 1.0f;
-                hsv.h = std::round(hsv.h / 60.0f) * 60.0f;
-
-                if (hsv.h >= 360.0f)
-                    hsv.h = 0.0f;
-                hsv.s = (hsv.s < 0.25f) ? 0.0f : 1.0f;
-            }
-            else
-            {
-                if (hsv.v > 0.0f)
-                    hsv.v = std::pow(hsv.v, config.gamma);
-
-                hsv.s = std::clamp(hsv.s * config.saturation, 0.0f, 1.0f);
-            }
-
             int finalR, finalG, finalB;
-            HSVtoRGB(hsv, finalR, finalG, finalB);
+            CalculateFinalColor(rawR, rawG, rawB, config, finalR, finalG, finalB);
 
             frame.pixels.push_back({c, finalR, finalG, finalB});
         }
