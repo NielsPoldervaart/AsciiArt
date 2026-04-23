@@ -89,9 +89,7 @@ namespace
     }
 }
 
-AsciiFrame AsciiGenerator::GenerateStandard(const Image& img, const std::vector<char>& edgeMap, const float contrast,
-                                            const bool retroColors, const float saturation, const float gamma,
-                                            const bool dither)
+AsciiFrame AsciiGenerator::GenerateStandard(const Image& img, const std::vector<char>& edgeMap, const AppConfig& config)
 {
     constexpr std::string_view asciiChars = " .:-=+*#%@";
     constexpr size_t numChars = asciiChars.length();
@@ -116,18 +114,18 @@ AsciiFrame AsciiGenerator::GenerateStandard(const Image& img, const std::vector<
                 0.7152f * static_cast<float>(rawG) +
                 0.0722f * static_cast<float>(rawB)) / 255.0f;
 
-            if (!retroColors && lum > 0.0f)
-                lum = std::pow(lum, gamma);
+            if (!config.retroColors && lum > 0.0f)
+                lum = std::pow(lum, config.gamma);
 
-            lum = std::clamp((lum - 0.5f) * contrast + 0.5f, 0.0f, 1.0f);
+            lum = std::clamp((lum - 0.5f) * config.contrast + 0.5f, 0.0f, 1.0f);
 
-            if (dither)
+            if (config.dither)
                 lum = std::clamp(lum + lumError[y * img.width + x], 0.0f, 1.0f);
 
             const auto charIndex = static_cast<size_t>(lum * (numChars - 1));
             char c = asciiChars[charIndex];
 
-            if (dither)
+            if (config.dither)
             {
                 const float quantizedLum = static_cast<float>(charIndex) / static_cast<float>(numChars - 1);
                 const float error = lum - quantizedLum;
@@ -149,7 +147,7 @@ AsciiFrame AsciiGenerator::GenerateStandard(const Image& img, const std::vector<
                                static_cast<float>(rawG) / 255.0f,
                                static_cast<float>(rawB) / 255.0f);
 
-            if (retroColors)
+            if (config.retroColors)
             {
                 hsv.v = 1.0f;
                 hsv.h = std::round(hsv.h / 60.0f) * 60.0f;
@@ -159,9 +157,9 @@ AsciiFrame AsciiGenerator::GenerateStandard(const Image& img, const std::vector<
             else
             {
                 if (hsv.v > 0.0f)
-                    hsv.v = std::pow(hsv.v, gamma);
+                    hsv.v = std::pow(hsv.v, config.gamma);
 
-                hsv.s = std::clamp(hsv.s * saturation, 0.0f, 1.0f);
+                hsv.s = std::clamp(hsv.s * config.saturation, 0.0f, 1.0f);
             }
 
             int finalR, finalG, finalB;
@@ -173,10 +171,7 @@ AsciiFrame AsciiGenerator::GenerateStandard(const Image& img, const std::vector<
     return frame;
 }
 
-AsciiFrame AsciiGenerator::GenerateWordArt(const Image& img, const std::string& targetWord,
-                                           const std::vector<char>& edgeMap, const float contrast,
-                                           const bool retroColors, const float saturation, const float gamma,
-                                           const bool dither)
+AsciiFrame AsciiGenerator::GenerateWordArt(const Image& img, const std::vector<char>& edgeMap, const AppConfig& config)
 {
     constexpr std::string_view shadingChars = " .:-=+*";
     constexpr size_t numShading = shadingChars.length();
@@ -202,12 +197,12 @@ AsciiFrame AsciiGenerator::GenerateWordArt(const Image& img, const std::string& 
                 0.7152f * static_cast<float>(rawG) +
                 0.0722f * static_cast<float>(rawB)) / 255.0f;
 
-            if (!retroColors && lum > 0.0f)
-                lum = std::pow(lum, gamma);
+            if (!config.retroColors && lum > 0.0f)
+                lum = std::pow(lum, config.gamma);
 
-            lum = std::clamp((lum - 0.5f) * contrast + 0.5f, 0.0f, 1.0f);
+            lum = std::clamp((lum - 0.5f) * config.contrast + 0.5f, 0.0f, 1.0f);
 
-            if (dither)
+            if (config.dither)
                 lum = std::clamp(lum + lumError[y * img.width + x], 0.0f, 1.0f);
 
             char c;
@@ -215,10 +210,10 @@ AsciiFrame AsciiGenerator::GenerateWordArt(const Image& img, const std::string& 
 
             if (lum > 0.5f)
             {
-                c = targetWord[wordIndex];
-                wordIndex = (wordIndex + 1) % targetWord.length();
+                c = config.customWord[wordIndex];
+                wordIndex = (wordIndex + 1) % config.customWord.length();
 
-                if (dither)
+                if (config.dither)
                     error = lum - 1.0f;
             }
             else
@@ -227,14 +222,14 @@ AsciiFrame AsciiGenerator::GenerateWordArt(const Image& img, const std::string& 
                 const auto charIndex = static_cast<size_t>(shadowLum * (numShading - 1));
                 c = shadingChars[charIndex];
 
-                if (dither)
+                if (config.dither)
                 {
                     const float quantizedLum = static_cast<float>(charIndex) / static_cast<float>(numShading - 1);
                     error = lum - (quantizedLum / 2.0f); // Scale it back down to the 0.0 - 0.5 range
                 }
             }
 
-            if (dither && error != 0.0f)
+            if (config.dither && error != 0.0f)
             {
                 if (x + 1 < img.width)
                     lumError[y * img.width + (x + 1)] += error * (7.0f / 16.0f);
@@ -253,7 +248,7 @@ AsciiFrame AsciiGenerator::GenerateWordArt(const Image& img, const std::string& 
                                static_cast<float>(rawG) / 255.0f,
                                static_cast<float>(rawB) / 255.0f);
 
-            if (retroColors)
+            if (config.retroColors)
             {
                 hsv.v = 1.0f;
                 hsv.h = std::round(hsv.h / 60.0f) * 60.0f;
@@ -265,9 +260,9 @@ AsciiFrame AsciiGenerator::GenerateWordArt(const Image& img, const std::string& 
             else
             {
                 if (hsv.v > 0.0f)
-                    hsv.v = std::pow(hsv.v, gamma);
+                    hsv.v = std::pow(hsv.v, config.gamma);
 
-                hsv.s = std::clamp(hsv.s * saturation, 0.0f, 1.0f);
+                hsv.s = std::clamp(hsv.s * config.saturation, 0.0f, 1.0f);
             }
 
             int finalR, finalG, finalB;

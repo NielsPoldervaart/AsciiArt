@@ -15,6 +15,7 @@ add_executable(AsciiArt src/main.cpp
         src/EdgeProcessor.cpp
         src/AsciiExporter.cpp
         src/UpdateChecker.cpp
+        src/AppConfig.cpp
 )
 
 target_include_directories(AsciiArt PRIVATE include external)
