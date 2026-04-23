@@ -126,10 +126,7 @@ int main(const int argc, char* argv[])
 
     const AppConfig config = ParseArguments(argc, argv);
 
-    const auto [imagePath, targetWidth, customWord, useColor, showHelp, contrast, fontPath, outputPath, edgeThreshold,
-        retroColors, saturation, gamma, dither, txtPath, htmlPath] = ParseArguments(argc, argv);
-
-    if (showHelp || imagePath.empty())
+    if (config.showHelp || config.imagePath.empty())
     {
         std::cout << "=== AsciiArt Generator ===\n";
         std::cout << "Usage: ./AsciiArt <image_path> [options]\n\n";
@@ -151,7 +148,7 @@ int main(const int argc, char* argv[])
         return 0;
     }
 
-    Image myImage(imagePath);
+    Image myImage(config.imagePath);
 
     if (!myImage.IsValid())
     {
@@ -159,41 +156,43 @@ int main(const int argc, char* argv[])
         return 1;
     }
 
-    const float exactFontRatio = ImageExporter::GetFontRatio(fontPath, 16);
+    const float exactFontRatio = ImageExporter::GetFontRatio(config.fontPath, 16);
 
     const float ratio = static_cast<float>(myImage.height) / static_cast<float>(myImage.width);
-    const int targetHeight = static_cast<int>((static_cast<float>(targetWidth) * ratio) / exactFontRatio);
+    const int targetHeight = static_cast<int>((static_cast<float>(config.targetWidth) * ratio) / exactFontRatio);
 
     std::cout << "Analyzing High-Resolution Edges. Might take a moment...\n";
     const std::vector<char> pooledEdges = EdgeProcessor::GeneratePooledEdgeMap(
-        myImage, targetWidth, targetHeight, edgeThreshold);
+        myImage, config.targetWidth, targetHeight, config.edgeThreshold);
 
     std::cout << "Downscaling image for shading and colors...\n";
-    myImage.Resize(targetWidth, exactFontRatio);
+    myImage.Resize(config.targetWidth, exactFontRatio);
 
     AsciiFrame frame;
-    if (!customWord.empty())
-        frame = AsciiGenerator::GenerateWordArt(myImage, customWord, pooledEdges, contrast, retroColors, saturation,
-                                                gamma, dither);
+    if (!config.customWord.empty())
+        frame = AsciiGenerator::GenerateWordArt(myImage, config.customWord, pooledEdges, config.contrast,
+                                                config.retroColors, config.saturation,
+                                                config.gamma, config.dither);
     else
-        frame = AsciiGenerator::GenerateStandard(myImage, pooledEdges, contrast, retroColors, saturation, gamma,
-                                                 dither);
+        frame = AsciiGenerator::GenerateStandard(myImage, pooledEdges, config.contrast, config.retroColors,
+                                                 config.saturation, config.gamma,
+                                                 config.dither);
 
     std::cout << "Rendering PNG...\n";
-    ImageExporter::ExportToPng(frame, fontPath, outputPath, useColor);
+    ImageExporter::ExportToPng(frame, config.fontPath, config.outputPath, config.useColor);
 
-    if (!txtPath.empty())
+    if (!config.txtPath.empty())
     {
         std::cout << "Exporting TXT...\n";
-        if (AsciiExporter::SaveTxt(txtPath, frame))
-            std::cout << "Saved text export to " << txtPath << "\n";
+        if (AsciiExporter::SaveTxt(config.txtPath, frame))
+            std::cout << "Saved text export to " << config.txtPath << "\n";
     }
 
-    if (!htmlPath.empty())
+    if (!config.htmlPath.empty())
     {
         std::cout << "Exporting HTML...\n";
-        if (AsciiExporter::SaveHtml(htmlPath, frame, fontPath))
-            std::cout << "Saved HTML export to " << htmlPath << "\n";
+        if (AsciiExporter::SaveHtml(config.htmlPath, frame, config.fontPath))
+            std::cout << "Saved HTML export to " << config.htmlPath << "\n";
     }
 
     return 0;
