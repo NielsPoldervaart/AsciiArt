@@ -23,6 +23,8 @@ FetchContent_MakeAvailable(glfw)
 find_package(OpenGL REQUIRED)
 
 add_executable(AsciiArt src/main.cpp
+        src/CliApp.cpp
+        src/GuiApp.cpp
         src/Image.cpp
         src/AsciiGenerator.cpp
         src/ImageExporter.cpp
