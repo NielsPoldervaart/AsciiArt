@@ -1,32 +1,29 @@
 #include "GuiApp.h"
 #include "WindowBackend.h"
 #include "imgui.h"
-#include <GLFW/glfw3.h>
-#include <thread>
-#include <chrono>
+#include "portable-file-dialogs.h"
+
+namespace
+{
+    std::string currentImagePath;
+
+    void OnFileDropped(const std::string& path)
+    {
+        currentImagePath = path;
+    }
+}
 
 int RunGuiApp()
 {
-    if (!glfwInit()) return 1;
+    if (!WindowBackend::Init(1280, 720, "AsciiArt v3.0")) return 1;
 
-    GLFWwindow* window = WindowBackend::InitGraphics(1280, 720, "AsciiArt v3.0");
-    if (!window)
-    {
-        glfwTerminate();
-        return 1;
-    }
+    WindowBackend::SetFileDropCallback(OnFileDropped);
 
     float clearColor[4] = { 0.075f, 0.075f, 0.075f, 1.00f };
 
-    while (!glfwWindowShouldClose(window))
+    while (WindowBackend::IsRunning())
     {
-        glfwPollEvents();
-
-        if (glfwGetWindowAttrib(window, GLFW_ICONIFIED) != 0)
-        {
-            std::this_thread::sleep_for(std::chrono::milliseconds(10));
-            continue;
-        }
+        WindowBackend::ProcessEvents();
 
 #ifdef __APPLE__
         @autoreleasepool {
@@ -42,7 +39,11 @@ int RunGuiApp()
 
         if (ImGui::Button("Load Image"))
         {
-            // TODO: Add actuak load image logic
+            auto selection = pfd::open_file("Select an image", ".",
+                { "Image Files", "*.png *.jpg *.jpeg *.bmp" }).result();
+
+            if (!selection.empty())
+                currentImagePath = selection[0];
         }
 
         ImGui::Spacing();
@@ -50,17 +51,20 @@ int RunGuiApp()
         ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.6f, 0.1f, 0.1f, 1.0f));
         if (ImGui::Button("Quit Application"))
         {
-            glfwSetWindowShouldClose(window, true);
+            WindowBackend::Close();
         }
         ImGui::PopStyleColor();
 
         ImGui::End();
 
         ImGui::Begin("Image Preview");
-        ImGui::Text("Your amazing ASCII art :)");
+        if (!currentImagePath.empty())
+            ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.0f, 1.0f), "Loaded: %s", currentImagePath.c_str());
+        else
+            ImGui::Text("Drag and drop your image here, or click 'Load Image'");
         ImGui::End();
 
-        WindowBackend::EndFrame(window, clearColor[0], clearColor[1], clearColor[2], clearColor[3]);
+        WindowBackend::EndFrame(clearColor[0], clearColor[1], clearColor[2], clearColor[3]);
 
 #ifdef __APPLE__
         }
@@ -68,8 +72,5 @@ int RunGuiApp()
     }
 
     WindowBackend::Shutdown();
-    glfwDestroyWindow(window);
-    glfwTerminate();
-
     return 0;
 }

@@ -1,7 +1,9 @@
 #include "WindowBackend.h"
+#include <GLFW/glfw3.h>
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include <iostream>
+#include <utility>
 
 #ifdef __APPLE__
     #import <Metal/Metal.h>
@@ -15,6 +17,9 @@
 
 namespace WindowBackend
 {
+    static GLFWwindow* g_Window = nullptr;
+    static std::function<void(const std::string&)> g_FileDropCallback;
+
 #ifdef __APPLE__
     id<MTLCommandQueue> commandQueue;
     CAMetalLayer* metalLayer;
@@ -25,9 +30,20 @@ namespace WindowBackend
         std::cerr << "GLFW Error " << error << ": " << description << "\n";
     }
 
-    GLFWwindow* InitGraphics(int width, int height, const char* title)
+    static void glfw_drop_callback(GLFWwindow* window, int count, const char** paths)
+    {
+        if (count > 0 && g_FileDropCallback)
+        {
+            g_FileDropCallback(paths[0]);
+        }
+    }
+
+    bool Init(int width, int height, const char* title)
     {
         glfwSetErrorCallback(glfw_error_callback);
+
+        if (!glfwInit())
+            return false;
 
 #ifdef __APPLE__
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
@@ -38,8 +54,10 @@ namespace WindowBackend
 #endif
         glfwWindowHint(GLFW_DECORATED, GLFW_FALSE);
 
-        GLFWwindow* window = glfwCreateWindow(width, height, title, nullptr, nullptr);
-        if (!window) return nullptr;
+        g_Window = glfwCreateWindow(width, height, title, nullptr, nullptr);
+        if (!g_Window) return false;
+
+        glfwSetDropCallback(g_Window, glfw_drop_callback);
 
         IMGUI_CHECKVERSION();
         ImGui::CreateContext();
@@ -67,23 +85,43 @@ namespace WindowBackend
         id<MTLDevice> device = MTLCreateSystemDefaultDevice();
         commandQueue = [device newCommandQueue];
 
-        ImGui_ImplGlfw_InitForOther(window, true);
+        ImGui_ImplGlfw_InitForOther(g_Window, true);
         ImGui_ImplMetal_Init(device);
 
-        NSWindow* nswin = glfwGetCocoaWindow(window);
+        NSWindow* nswin = glfwGetCocoaWindow(g_Window);
         metalLayer = [CAMetalLayer layer];
         metalLayer.device = device;
         metalLayer.pixelFormat = MTLPixelFormatBGRA8Unorm;
         nswin.contentView.layer = metalLayer;
         nswin.contentView.wantsLayer = YES;
 #else
-        glfwMakeContextCurrent(window);
+        glfwMakeContextCurrent(g_Window);
         glfwSwapInterval(1);
-        ImGui_ImplGlfw_InitForOpenGL(window, true);
+        ImGui_ImplGlfw_InitForOpenGL(g_Window, true);
         ImGui_ImplOpenGL3_Init("#version 330 core");
 #endif
 
-        return window;
+        return true;
+    }
+
+    bool IsRunning()
+    {
+        return !glfwWindowShouldClose(g_Window);
+    }
+
+    void ProcessEvents()
+    {
+        glfwPollEvents();
+
+        if (glfwGetWindowAttrib(g_Window, GLFW_ICONIFIED) != 0)
+        {
+            ImGui_ImplGlfw_Sleep(10);
+        }
+    }
+
+    void Close()
+    {
+        glfwSetWindowShouldClose(g_Window, true);
     }
 
     void BeginFrame()
@@ -95,13 +133,13 @@ namespace WindowBackend
         ImGui::NewFrame();
     }
 
-    void EndFrame(GLFWwindow* window, float clearR, float clearG, float clearB, float clearA)
+    void EndFrame(float clearR, float clearG, float clearB, float clearA)
     {
         ImGui::Render();
 
 #ifdef __APPLE__
         int width, height;
-        glfwGetFramebufferSize(window, &width, &height);
+        glfwGetFramebufferSize(g_Window, &width, &height);
         metalLayer.drawableSize = CGSizeMake(width, height);
         id<CAMetalDrawable> drawable = [metalLayer nextDrawable];
 
@@ -122,12 +160,12 @@ namespace WindowBackend
         [commandBuffer commit];
 #else
         int display_w, display_h;
-        glfwGetFramebufferSize(window, &display_w, &display_h);
+        glfwGetFramebufferSize(g_Window, &display_w, &display_h);
         glViewport(0, 0, display_w, display_h);
         glClearColor(clearR, clearG, clearB, clearA);
         glClear(GL_COLOR_BUFFER_BIT);
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-        glfwSwapBuffers(window);
+        glfwSwapBuffers(g_Window);
 #endif
     }
 
@@ -140,5 +178,15 @@ namespace WindowBackend
 #endif
         ImGui_ImplGlfw_Shutdown();
         ImGui::DestroyContext();
+
+        if (g_Window) {
+            glfwDestroyWindow(g_Window);
+        }
+        glfwTerminate();
+    }
+
+    void SetFileDropCallback(std::function<void(const std::string&)> callback)
+    {
+        g_FileDropCallback = std::move(callback);
     }
 }

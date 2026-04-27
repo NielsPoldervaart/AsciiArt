@@ -1,10 +1,17 @@
 #pragma once
-#include <GLFW/glfw3.h>
+#include <string>
+#include <functional>
 
 namespace WindowBackend
 {
-    GLFWwindow* InitGraphics(int width, int height, const char* title);
+    bool Init(int width, int height, const char* title);
+    bool IsRunning();
+    void ProcessEvents();
+    void Close();
+
     void BeginFrame();
-    void EndFrame(GLFWwindow* window, float clearR, float clearG, float clearB, float clearA);
+    void EndFrame(float clearR, float clearG, float clearB, float clearA);
     void Shutdown();
+
+    void SetFileDropCallback(std::function<void(const std::string&)> callback);
 }
