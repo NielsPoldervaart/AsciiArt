@@ -34,9 +34,31 @@ int RunGuiApp()
 
         WindowBackend::BeginFrame();
 
-        // TODO: add actual GUI stuff
+        ImGui::DockSpaceOverViewport(0, ImGui::GetMainViewport());
 
-        ImGui::ShowDemoWindow();
+        ImGui::Begin("Settings");
+        ImGui::Text("ASCII Generation Settings");
+        ImGui::Separator();
+
+        if (ImGui::Button("Load Image"))
+        {
+            // TODO: Add actuak load image logic
+        }
+
+        ImGui::Spacing();
+
+        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.6f, 0.1f, 0.1f, 1.0f));
+        if (ImGui::Button("Quit Application"))
+        {
+            glfwSetWindowShouldClose(window, true);
+        }
+        ImGui::PopStyleColor();
+
+        ImGui::End();
+
+        ImGui::Begin("Image Preview");
+        ImGui::Text("Your amazing ASCII art :)");
+        ImGui::End();
 
         WindowBackend::EndFrame(window, clearColor[0], clearColor[1], clearColor[2], clearColor[3]);
 
