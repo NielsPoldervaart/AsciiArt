@@ -31,7 +31,7 @@ if (APPLE)
     )
     set(GRAPHICS_LIBS "-framework Metal" "-framework QuartzCore" "-framework Cocoa" "-framework Foundation")
 
-    set_source_files_properties(src/GuiApp.mm PROPERTIES LANGUAGE OBJCXX COMPILE_FLAGS "-fobjc-arc")
+    set_source_files_properties(src/GuiApp.mm src/WindowBackend.mm external/imgui/backends/imgui_impl_metal.mm PROPERTIES COMPILE_FLAGS "-fobjc-arc")
     set_source_files_properties(external/imgui/backends/imgui_impl_metal.mm PROPERTIES COMPILE_FLAGS "-fobjc-arc")
 else ()
     find_package(OpenGL REQUIRED)
@@ -45,7 +45,8 @@ endif ()
 add_executable(AsciiArt
         src/main.cpp
         src/CliApp.cpp
-        src/GuiApp.cpp
+        src/GuiApp.mm
+        src/WindowBackend.mm
         src/Image.cpp
         src/AsciiGenerator.cpp
         src/ImageExporter.cpp
