@@ -5,6 +5,6 @@ namespace WindowBackend
 {
     GLFWwindow* InitGraphics(int width, int height, const char* title);
     void BeginFrame();
-    void EndFrame(GLFWwindow* window);
+    void EndFrame(GLFWwindow* window, float clearR, float clearG, float clearB, float clearA);
     void Shutdown();
 }
