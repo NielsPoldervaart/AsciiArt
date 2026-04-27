@@ -58,10 +58,38 @@ int RunGuiApp()
         ImGui::End();
 
         ImGui::Begin("Image Preview");
-        if (!currentImagePath.empty())
-            ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.0f, 1.0f), "Loaded: %s", currentImagePath.c_str());
-        else
-            ImGui::Text("Drag and drop your image here, or click 'Load Image'");
+        if (ImGui::BeginTabBar("PreviewTabs"))
+        {
+            if (ImGui::BeginTabItem("Original Image"))
+            {
+                if (!currentImagePath.empty())
+                {
+                    ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.0f, 1.0f), "Loaded: %s", currentImagePath.c_str());
+                    ImGui::TextDisabled("Amazing original image!");
+                }
+                else
+                {
+                    ImGui::Text("Drag and drop your image here, or click 'Load Image'");
+                }
+                ImGui::EndTabItem();
+            }
+
+            if (ImGui::BeginTabItem("ASCII Result"))
+            {
+                if (!currentImagePath.empty())
+                {
+                    ImGui::Text("Imaginary ASCII Result!");
+                }
+                else
+                {
+                    ImGui::Text("Waiting for image...");
+                }
+                ImGui::EndTabItem();
+            }
+
+            ImGui::EndTabBar();
+        }
+
         ImGui::End();
 
         WindowBackend::EndFrame(clearColor[0], clearColor[1], clearColor[2], clearColor[3]);
